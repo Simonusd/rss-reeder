@@ -32,7 +32,8 @@ npm start         # start production server
 - **Firebase client-side only** — always guard with `typeof window !== 'undefined'` before initializing
 - **RSS and article fetching must go through Next.js API routes** — browsers block direct RSS/article fetches (CORS)
 - **All AI calls go through `/api/ai/route.ts`** — never call AI providers directly from frontend; user API keys must never appear in server logs
-- **'use client' only when necessary** — hooks, event handlers, browser APIs. Prefer server components.
+- **`useSearchParams()` always requires `<Suspense>`** — Next.js 15 App Router rule. Pattern: export a wrapper component that renders `<Suspense><InnerContent /></Suspense>`, and put `useSearchParams()` inside `InnerContent`. See `src/app/reader/page.tsx` for the established pattern.
+- **`'use client'` only when necessary** — hooks, event handlers, browser APIs. Prefer server components.
 
 ### Data Flow
 
@@ -55,15 +56,54 @@ users/{userId}/
   keywords/{keywordId} # word, active
 ```
 
+Article document ID = `btoa(article.url)` — set in `saveArticles()` in `src/lib/firestore.ts`.
+
 ### Layout
 
-Desktop: 3-column (sidebar | article list | article content)
+Desktop: 3-column (sidebar | article list | article content)  
 Mobile: single-column with bottom navigation
+
+All view state is URL-driven: `?feedId=`, `?filter=unread|bookmarks`, `?articleId=`.  
+Child components receive these as props — **do not call `useSearchParams()` in child components**, only in the top-level page component (`ReaderContent` in `reader/page.tsx`).
+
+### State management pattern in `/reader`
+
+`src/app/reader/page.tsx` (`ReaderContent`) owns all shared state and lifts hooks up:
+- `useAuth()` — authentication
+- `useArticles(userId, feedId)` — article list (lifted from ArticleList)
+- `useFeeds(userId)` — feeds + folders (lifted from Sidebar)
+- `activeColumn`, `sidebarCursorIndex` — keyboard navigation state
+
+Props flow down to `Sidebar`, `ArticleList`, `ArticleView`.
+
+### Auth & Session
+
+- Firebase Auth handles actual authentication
+- A `session=1` cookie is set/cleared manually (used by middleware for SSR route protection)
+- When Firebase reports no user, the cookie is cleared before redirecting to `/login` — prevents redirect loops
+- Middleware: `src/middleware.ts` — protects `/reader`, `/settings`, `/article`
+
+### Keyboard Navigation
+
+Implemented in `ReaderContent` via a `window` `keydown` listener (`handleKeyDown`):
+
+| Key | Column | Action |
+|-----|--------|--------|
+| `←` | any | Move focus to previous column |
+| `→` | any | Move focus to next column |
+| `↑` / `↓` | sidebar | Navigate sidebar items (All / Unread / Bookmarks / Folder / Feed), live URL update |
+| `↑` / `↓` | article list | Navigate between articles, auto-open in column 3 |
+| `↑` / `↓` | article view | Scroll content by 120px |
+
+- Ignored when focus is in `input` or `textarea`
+- Active column shown with `ring-2 ring-inset ring-blue-500`
+- Highlighted sidebar item shown with `bg-blue-100 dark:bg-blue-900`
+- `highlightedKey` string format: `"all"`, `"filter:unread"`, `"filter:bookmarks"`, `"folder:{id}"`, `"feed:{id}"`
 
 ### AI Integration
 
-`/api/ai/route.ts` accepts `{ action, content, provider, apiKey, model }`.
-Actions: `summarize` | `translate` | `autotag` | `sentiment` | `chat`
+`/api/ai/route.ts` accepts `{ action, content, provider, apiKey, model }`.  
+Actions: `summarize` | `translate` | `autotag` | `sentiment` | `chat`  
 The user's API key comes from their Firestore settings document and is forwarded to the provider — it must never be logged.
 
 ## Environment Variables
@@ -94,14 +134,18 @@ service cloud.firestore {
 
 ## Implementation Roadmap
 
-### Stage 1 — Foundation
+### Stage 1 — Foundation ✅
 Auth (register/login/protected routes), add RSS feeds, article list, mark as read (Firestore sync), Reader Mode, PWA manifest + service worker, offline support.
 
-### Stage 2 — Organization
+### Stage 2 — Organization ✅
 Folders, tags, bookmarks, OPML import/export, filtering (all/unread/bookmarks/folder/tag).
 
-### Stage 3 — AI (BYOK)
+### Stage 3 — AI (BYOK) ✅
 AI settings (provider + API key), summarize, translate to Polish, auto-tags, sentiment, chat about article. All features gated on user having saved an API key.
 
-### Stage 4 — Extras
-Keyword alerts, reading stats/streak, PDF export, keyboard shortcuts (↑↓ navigate, R read, B bookmark, O open original).
+### Stage 4 — Extras (in progress)
+- ✅ Keyboard shortcuts: ↑↓ navigate articles, ←→ switch columns, ↑↓ in sidebar navigates filters/feeds
+- ⬜ R — mark as read, B — bookmark, O — open original URL
+- ⬜ Keyword alerts
+- ⬜ Reading stats/streak
+- ⬜ PDF export

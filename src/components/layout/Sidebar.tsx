@@ -2,18 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useFeeds } from "@/hooks/useFeeds";
+import { useRouter } from "next/navigation";
 import FolderItem from "@/components/feeds/FolderItem";
 import AddFeedModal from "@/components/feeds/AddFeedModal";
 import { logout } from "@/lib/auth";
-import { useRouter } from "next/navigation";
+import type { Feed, Folder } from "@/types";
 
 interface Props {
   userId: string;
+  feeds: Feed[];
+  folders: Folder[];
+  isActive: boolean;
+  onActivate: () => void;
+  highlightedKey: string | null;
 }
 
-export default function Sidebar({ userId }: Props) {
-  const { feeds, folders, loading } = useFeeds(userId);
+const HL = "bg-blue-100 dark:bg-blue-900";
+const BASE_LINK = "flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm";
+
+export default function Sidebar({ userId, feeds, folders, isActive, onActivate, highlightedKey }: Props) {
   const [showAddFeed, setShowAddFeed] = useState(false);
   const router = useRouter();
 
@@ -26,11 +33,16 @@ export default function Sidebar({ userId }: Props) {
   const unassignedFeeds = feeds.filter((f) => !f.folderId);
 
   return (
-    <aside className="w-64 h-full border-r flex flex-col bg-gray-50 dark:bg-gray-900 shrink-0">
+    <aside
+      onClick={onActivate}
+      className={`w-64 h-full border-r flex flex-col bg-gray-50 dark:bg-gray-900 shrink-0 transition-shadow ${
+        isActive ? "ring-2 ring-inset ring-blue-500" : ""
+      }`}
+    >
       <div className="p-4 border-b flex items-center justify-between">
         <span className="font-bold text-lg">RSS Reader</span>
         <button
-          onClick={() => setShowAddFeed(true)}
+          onClick={(e) => { e.stopPropagation(); setShowAddFeed(true); }}
           className="text-blue-600 hover:text-blue-800 text-xl font-bold"
           title="Dodaj feed"
         >
@@ -41,52 +53,50 @@ export default function Sidebar({ userId }: Props) {
       <nav className="flex-1 overflow-y-auto p-2 space-y-1">
         <Link
           href="/reader"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm"
+          className={`${BASE_LINK} ${highlightedKey === "all" ? HL : ""}`}
         >
           Wszystkie artykuły
         </Link>
         <Link
           href="/reader?filter=unread"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm"
+          className={`${BASE_LINK} ${highlightedKey === "filter:unread" ? HL : ""}`}
         >
           Nieprzeczytane
         </Link>
         <Link
           href="/reader?filter=bookmarks"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm"
+          className={`${BASE_LINK} ${highlightedKey === "filter:bookmarks" ? HL : ""}`}
         >
           Zakładki
         </Link>
 
-        {!loading && (
-          <>
-            {folders.map((folder) => (
-              <FolderItem
-                key={folder.id}
-                folder={folder}
-                feeds={feeds.filter((f) => f.folderId === folder.id)}
-                userId={userId}
-              />
-            ))}
-            {unassignedFeeds.map((feed) => (
-              <Link
-                key={feed.id}
-                href={`/reader?feedId=${feed.id}`}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm"
-              >
-                {feed.favicon && (
-                  <img src={feed.favicon} alt="" className="w-4 h-4 rounded" />
-                )}
-                <span className="truncate">{feed.title}</span>
-                {feed.unreadCount > 0 && (
-                  <span className="ml-auto text-xs bg-blue-600 text-white rounded-full px-1.5 py-0.5">
-                    {feed.unreadCount}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </>
-        )}
+        {folders.map((folder) => (
+          <FolderItem
+            key={folder.id}
+            folder={folder}
+            feeds={feeds.filter((f) => f.folderId === folder.id)}
+            userId={userId}
+            highlightedKey={highlightedKey}
+          />
+        ))}
+
+        {unassignedFeeds.map((feed) => (
+          <Link
+            key={feed.id}
+            href={`/reader?feedId=${feed.id}`}
+            className={`${BASE_LINK} ${highlightedKey === `feed:${feed.id}` ? HL : ""}`}
+          >
+            {feed.favicon && (
+              <img src={feed.favicon} alt="" className="w-4 h-4 rounded" />
+            )}
+            <span className="truncate">{feed.title}</span>
+            {feed.unreadCount > 0 && (
+              <span className="ml-auto text-xs bg-blue-600 text-white rounded-full px-1.5 py-0.5">
+                {feed.unreadCount}
+              </span>
+            )}
+          </Link>
+        ))}
       </nav>
 
       <div className="p-2 border-t flex gap-2">

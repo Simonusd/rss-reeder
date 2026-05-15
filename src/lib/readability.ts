@@ -11,9 +11,13 @@ export interface ReadableArticle {
 }
 
 export async function extractArticle(url: string): Promise<ReadableArticle> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
   const response = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; RSSReader/1.0)" },
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);

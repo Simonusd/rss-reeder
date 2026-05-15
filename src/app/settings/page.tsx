@@ -13,6 +13,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!loading && !user) {
+      document.cookie = "session=; path=/; max-age=0";
       router.replace("/login");
     }
   }, [user, loading, router]);
