@@ -56,9 +56,13 @@ users/{userId}/
   keywords/{keywordId} # word, active
 ```
 
-Article document ID = `btoa(article.url)` — set in `saveArticles()` in `src/lib/firestore.ts`.
+Article document ID = `btoa(article.url)` — set in `saveArticles()` and `saveArticlesForRefresh()` in `src/lib/firestore.ts`.
 
 **Article query design** — `subscribeToArticles` in `src/lib/firestore.ts` uses `where("feedId", "==", feedId)` **without** `orderBy` when filtering by feed, to avoid the Firestore composite index requirement (`where` on one field + `orderBy` on a different field always requires a composite index). Sorting by `publishedAt` is done client-side in `useArticles` hook. The "all articles" query (no `where`) still uses Firestore-side `orderBy("publishedAt", "desc")`. **Do not add `orderBy` back to the feedId query** without first creating the composite index in Firebase Console.
+
+**`unreadCount` on feed documents** — maintained by two functions in `src/lib/firestore.ts`:
+- `markAsRead(userId, articleId, isRead, feedId)` — requires `feedId` as 4th param; after updating the article, does `getDoc` on the feed then `updateDoc` with `Math.max(0, curr ± 1)`. **Never use Firebase `increment()` FieldValue here** — it had silent runtime failures with Firebase v11; always use the explicit getDoc→compute→updateDoc pattern.
+- `saveArticlesForRefresh(userId, feedId, articles)` — called during manual feed refresh. Queries existing article IDs first, then: existing articles get content-only `updateDoc` (preserving `isRead`, `isBookmarked`, `summary`, `tags`, `sentiment`); new articles get `setDoc` with `isRead: false`. Updates `unreadCount` by adding only the count of newly created articles. **Do not use `saveArticles()` for refresh** — it uses blind `merge: true` which overwrites `isRead` on existing articles.
 
 ### Layout
 
@@ -67,6 +71,16 @@ Mobile: single-column with bottom navigation
 
 All view state is URL-driven: `?feedId=`, `?filter=unread|bookmarks`, `?articleId=`.  
 Child components receive these as props — **do not call `useSearchParams()` in child components**, only in the top-level page component (`ReaderContent` in `reader/page.tsx`).
+
+### Sidebar header buttons
+
+The sidebar header (`src/components/layout/Sidebar.tsx`) has two buttons on the right:
+- **↺ (Odśwież)** — refreshes all feeds in parallel; calls `saveArticlesForRefresh()` for each feed. Shows a spinning animation (`animate-spin`) while running, disabled during refresh. Errors on individual feeds are silently ignored.
+- **+ (Dodaj)** — opens `AddFeedModal`.
+
+### Settings page navigation
+
+`src/app/settings/page.tsx` has a "← Powrót" link at the top that navigates to `/reader`. It uses Next.js `<Link href="/reader">` with a left-arrow SVG icon.
 
 ### Sidebar feed/folder management
 
@@ -168,6 +182,9 @@ AI settings (provider + API key), summarize, translate to Polish, auto-tags, sen
 - ✅ Feed/folder management: right-click context menu → rename (inline) / delete (with confirmation)
 - ✅ Article list search: magnifying-glass icon slides out a title search field
 - ✅ Cookie consent blocking in iframe mode (injected via `/api/proxy`)
+- ✅ Manual feed refresh: ↺ button in sidebar header refreshes all feeds, preserves read/bookmark state
+- ✅ Settings page back button: "← Powrót" link navigates to `/reader`
+- ✅ Unread count badge: decrements when articles are marked as read, increments when new articles arrive via refresh
 - ⬜ R — mark as read, B — bookmark, O — open original URL
 - ⬜ Keyword alerts
 - ⬜ Reading stats/streak
