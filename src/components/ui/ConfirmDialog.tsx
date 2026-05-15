@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface Props {
@@ -10,6 +11,12 @@ interface Props {
 }
 
 export default function ConfirmDialog({ message, confirmLabel = "Usuń", onConfirm, onCancel }: Props) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) return null;
+
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">

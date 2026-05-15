@@ -70,6 +70,12 @@ export default function Sidebar({ userId, feeds, folders, isActive, onActivate, 
         >
           Zakładki
         </Link>
+        <Link
+          href="/reader?filter=read"
+          className={`${BASE_LINK} ${highlightedKey === "filter:read" ? HL : ""}`}
+        >
+          Przeczytane
+        </Link>
 
         {folders.map((folder) => (
           <FolderItem

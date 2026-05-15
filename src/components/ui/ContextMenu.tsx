@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface MenuItem {
@@ -18,6 +18,9 @@ interface Props {
 
 export default function ContextMenu({ x, y, items, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     function handleMouseDown(e: MouseEvent) {
@@ -34,7 +37,8 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
     };
   }, [onClose]);
 
-  // Adjust position to stay within viewport
+  if (!mounted) return null;
+
   const style: React.CSSProperties = {
     position: "fixed",
     top: Math.min(y, window.innerHeight - 100),

@@ -14,7 +14,7 @@ type ActiveColumn = "sidebar" | "list" | "article";
 
 type SidebarItem =
   | { kind: "all" }
-  | { kind: "filter"; value: "unread" | "bookmarks" }
+  | { kind: "filter"; value: "unread" | "bookmarks" | "read" }
   | { kind: "folder"; folderId: string }
   | { kind: "feed"; feedId: string };
 
@@ -32,6 +32,9 @@ function getInitialSidebarIndex(
   }
   if (filter === "bookmarks") {
     return items.findIndex(x => x.kind === "filter" && x.value === "bookmarks");
+  }
+  if (filter === "read") {
+    return items.findIndex(x => x.kind === "filter" && x.value === "read");
   }
   return 0;
 }
@@ -68,6 +71,7 @@ function ReaderContent() {
       articles.filter((a) => {
         if (filter === "unread") return !a.isRead;
         if (filter === "bookmarks") return a.isBookmarked;
+        if (filter === "read") return a.isRead;
         return true;
       }),
     [articles, filter]
@@ -78,6 +82,7 @@ function ReaderContent() {
       { kind: "all" },
       { kind: "filter", value: "unread" },
       { kind: "filter", value: "bookmarks" },
+      { kind: "filter", value: "read" },
       ...folders.flatMap((folder) => [
         { kind: "folder" as const, folderId: folder.id },
         ...feeds
