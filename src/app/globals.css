@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-size: 16px;
+}
+
+html {
+  font-size: var(--font-size);
+}
+
+.theme-sepia {
+  background-color: #f4ecd8;
+  color: #5c4a1e;
+}

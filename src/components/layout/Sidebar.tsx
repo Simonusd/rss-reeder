@@ -1,0 +1,109 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useFeeds } from "@/hooks/useFeeds";
+import FolderItem from "@/components/feeds/FolderItem";
+import AddFeedModal from "@/components/feeds/AddFeedModal";
+import { logout } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+
+interface Props {
+  userId: string;
+}
+
+export default function Sidebar({ userId }: Props) {
+  const { feeds, folders, loading } = useFeeds(userId);
+  const [showAddFeed, setShowAddFeed] = useState(false);
+  const router = useRouter();
+
+  async function handleLogout() {
+    await logout();
+    router.replace("/login");
+  }
+
+  const unassignedFeeds = feeds.filter((f) => !f.folderId);
+
+  return (
+    <aside className="w-64 h-full border-r flex flex-col bg-gray-50 dark:bg-gray-900 shrink-0">
+      <div className="p-4 border-b flex items-center justify-between">
+        <span className="font-bold text-lg">RSS Reader</span>
+        <button
+          onClick={() => setShowAddFeed(true)}
+          className="text-blue-600 hover:text-blue-800 text-xl font-bold"
+          title="Dodaj feed"
+        >
+          +
+        </button>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+        <Link
+          href="/reader"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm"
+        >
+          Wszystkie artykuły
+        </Link>
+        <Link
+          href="/reader?filter=unread"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm"
+        >
+          Nieprzeczytane
+        </Link>
+        <Link
+          href="/reader?filter=bookmarks"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm"
+        >
+          Zakładki
+        </Link>
+
+        {!loading && (
+          <>
+            {folders.map((folder) => (
+              <FolderItem
+                key={folder.id}
+                folder={folder}
+                feeds={feeds.filter((f) => f.folderId === folder.id)}
+                userId={userId}
+              />
+            ))}
+            {unassignedFeeds.map((feed) => (
+              <Link
+                key={feed.id}
+                href={`/reader?feedId=${feed.id}`}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm"
+              >
+                {feed.favicon && (
+                  <img src={feed.favicon} alt="" className="w-4 h-4 rounded" />
+                )}
+                <span className="truncate">{feed.title}</span>
+                {feed.unreadCount > 0 && (
+                  <span className="ml-auto text-xs bg-blue-600 text-white rounded-full px-1.5 py-0.5">
+                    {feed.unreadCount}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </>
+        )}
+      </nav>
+
+      <div className="p-2 border-t flex gap-2">
+        <Link
+          href="/settings"
+          className="flex-1 text-center text-sm px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800"
+        >
+          Ustawienia
+        </Link>
+        <button
+          onClick={handleLogout}
+          className="flex-1 text-center text-sm px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-red-600"
+        >
+          Wyloguj
+        </button>
+      </div>
+
+      {showAddFeed && <AddFeedModal userId={userId} onClose={() => setShowAddFeed(false)} />}
+    </aside>
+  );
+}
