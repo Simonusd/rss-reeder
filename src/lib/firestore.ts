@@ -70,6 +70,10 @@ export async function deleteFolder(userId: string, folderId: string): Promise<vo
   await deleteDoc(doc(db(), "users", userId, "folders", folderId));
 }
 
+export async function updateFolder(userId: string, folderId: string, data: Partial<Folder>): Promise<void> {
+  await updateDoc(doc(db(), "users", userId, "folders", folderId), data);
+}
+
 // Articles
 export function subscribeToArticles(
   userId: string,

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import FolderItem from "@/components/feeds/FolderItem";
+import FeedItem from "@/components/feeds/FeedItem";
 import AddFeedModal from "@/components/feeds/AddFeedModal";
 import { logout } from "@/lib/auth";
 import type { Feed, Folder } from "@/types";
@@ -81,21 +82,12 @@ export default function Sidebar({ userId, feeds, folders, isActive, onActivate, 
         ))}
 
         {unassignedFeeds.map((feed) => (
-          <Link
+          <FeedItem
             key={feed.id}
-            href={`/reader?feedId=${feed.id}`}
-            className={`${BASE_LINK} ${highlightedKey === `feed:${feed.id}` ? HL : ""}`}
-          >
-            {feed.favicon && (
-              <img src={feed.favicon} alt="" className="w-4 h-4 rounded" />
-            )}
-            <span className="truncate">{feed.title}</span>
-            {feed.unreadCount > 0 && (
-              <span className="ml-auto text-xs bg-blue-600 text-white rounded-full px-1.5 py-0.5">
-                {feed.unreadCount}
-              </span>
-            )}
-          </Link>
+            feed={feed}
+            userId={userId}
+            highlighted={highlightedKey === `feed:${feed.id}`}
+          />
         ))}
       </nav>
 
