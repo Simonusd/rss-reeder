@@ -14,6 +14,52 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Nieprawidłowy URL" }, { status: 400 });
   }
 
+  const cookieBlocker = `<style>
+#onetrust-consent-sdk,#onetrust-banner-sdk,.onetrust-pc-dark-filter,
+#CybotCookiebotDialog,#CybotCookiebotDialogBodyUnderlay,
+.cc-window,.cc-banner,.cc-overlay,.cc-grower,
+#qc-cmp2-ui,.qc-cmp2-persistent-link,
+#gdpr-cookie-message,.gdpr-cookie-notice,
+[id^="cookiefirst"],.cookiefirst-root,
+#cmplz-cookiebanner-container,.cmplz-cookiebanner,
+#cookie-script-dialog,
+.iubenda-cs-container,#iubenda-cs-banner,
+#ppms_cm_popup,.ppms_cm_popup_overlay,
+#truste-consent-required,.truste-consent-track,
+[id^="BorlabsCookie"],.borlabs-cookie,
+#cookie-law-info-bar,.cli-cookie-popup,
+.cookie-notice-container,#cn-notice,
+[class*="cookie-banner"],[id*="cookie-banner"],
+[class*="cookie-popup"],[id*="cookie-popup"],
+[class*="cookie-notice"],[id*="cookie-notice"],
+[class*="consent-banner"],[id*="consent-banner"],
+[class*="gdpr-banner"],[id*="gdpr-banner"]
+{display:none!important;visibility:hidden!important;pointer-events:none!important;}
+body{overflow:auto!important;}
+</style>
+<script>
+(function(){
+var sel=[
+'#onetrust-consent-sdk','#onetrust-banner-sdk','.onetrust-pc-dark-filter',
+'#CybotCookiebotDialog','#CybotCookiebotDialogBodyUnderlay',
+'.cc-window','.cc-banner','.cc-overlay',
+'#qc-cmp2-ui','#gdpr-cookie-message',
+'[id^="cookiefirst"]','#cmplz-cookiebanner-container','.cmplz-cookiebanner',
+'#cookie-script-dialog','.iubenda-cs-container','#iubenda-cs-banner',
+'#ppms_cm_popup','[id^="BorlabsCookie"]','.borlabs-cookie',
+'#cookie-law-info-bar','.cookie-notice-container'
+];
+function hide(){
+sel.forEach(function(s){
+document.querySelectorAll(s).forEach(function(el){el.style.setProperty('display','none','important');});
+});
+if(document.body)document.body.style.setProperty('overflow','auto','important');
+}
+new MutationObserver(hide).observe(document.documentElement,{childList:true,subtree:true});
+document.readyState==='loading'?document.addEventListener('DOMContentLoaded',hide):hide();
+})();
+</script>`;
+
   try {
     const response = await fetch(targetUrl, {
       headers: {
@@ -30,12 +76,12 @@ export async function GET(req: NextRequest) {
     if (contentType.includes("text/html")) {
       let html = await response.text();
 
-      // Inject <base> so relative URLs resolve correctly
+      // Inject <base> so relative URLs resolve correctly, then cookie blocker
       const baseTag = `<base href="${targetUrl}">`;
       if (/<head[^>]*>/i.test(html)) {
-        html = html.replace(/<head[^>]*>/i, (m) => `${m}${baseTag}`);
+        html = html.replace(/<head[^>]*>/i, (m) => `${m}${baseTag}${cookieBlocker}`);
       } else {
-        html = baseTag + html;
+        html = baseTag + cookieBlocker + html;
       }
 
       return new NextResponse(html, {
