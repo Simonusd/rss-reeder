@@ -15,8 +15,16 @@ export function useArticles(userId: string | null, feedId: string | null = null)
       return;
     }
 
+    setArticles([]);
+    setLoading(true);
+
     const unsubscribe = subscribeToArticles(userId, feedId, (a) => {
-      setArticles(a);
+      const sorted = [...a].sort((x, y) => {
+        const xd = x.publishedAt instanceof Date ? x.publishedAt : new Date(x.publishedAt as string);
+        const yd = y.publishedAt instanceof Date ? y.publishedAt : new Date(y.publishedAt as string);
+        return yd.getTime() - xd.getTime();
+      });
+      setArticles(sorted);
       setLoading(false);
     });
 

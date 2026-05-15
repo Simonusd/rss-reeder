@@ -78,13 +78,17 @@ export function subscribeToArticles(
 ): Unsubscribe {
   const col = collection(db(), "users", userId, "articles");
   const q = feedId
-    ? query(col, where("feedId", "==", feedId), orderBy("publishedAt", "desc"))
+    ? query(col, where("feedId", "==", feedId))
     : query(col, orderBy("publishedAt", "desc"));
 
-  return onSnapshot(q, (snap) => {
-    const articles = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
-    callback(articles);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const articles = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+      callback(articles);
+    },
+    (error) => console.error("subscribeToArticles error:", error)
+  );
 }
 
 export async function saveArticles(userId: string, articles: Omit<Article, "id">[]): Promise<void> {

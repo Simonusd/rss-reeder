@@ -43,6 +43,7 @@ function ReaderContent() {
 
   const [activeColumn, setActiveColumn] = useState<ActiveColumn>("list");
   const [sidebarCursorIndex, setSidebarCursorIndex] = useState(0);
+  const [iframeMode, setIframeMode] = useState(false);
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const articleViewRef = useRef<HTMLElement>(null);
 
@@ -56,6 +57,8 @@ function ReaderContent() {
   const feedId = searchParams.get("feedId");
   const filter = searchParams.get("filter");
   const articleId = searchParams.get("articleId");
+
+  useEffect(() => { setIframeMode(false); }, [articleId]);
 
   const { articles, loading: articlesLoading } = useArticles(user?.uid ?? null, feedId);
   const { feeds, folders } = useFeeds(user?.uid ?? null);
@@ -110,22 +113,30 @@ function ReaderContent() {
 
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        setActiveColumn((c) => {
-          if (c === "article") return "list";
-          if (c === "list") {
-            setSidebarCursorIndex(getInitialSidebarIndex(sidebarItems, feedId, filter));
+        if (activeColumn === "article" && iframeMode) {
+          setIframeMode(false);
+        } else {
+          setActiveColumn((c) => {
+            if (c === "article") return "list";
+            if (c === "list") {
+              setSidebarCursorIndex(getInitialSidebarIndex(sidebarItems, feedId, filter));
+              return "sidebar";
+            }
             return "sidebar";
-          }
-          return "sidebar";
-        });
+          });
+        }
         return;
       }
 
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        setActiveColumn((c) =>
-          c === "sidebar" ? "list" : c === "list" ? "article" : "article"
-        );
+        if (activeColumn === "article" && articleId && !iframeMode) {
+          setIframeMode(true);
+        } else if (activeColumn !== "article") {
+          setActiveColumn((c) =>
+            c === "sidebar" ? "list" : "article"
+          );
+        }
         return;
       }
 
@@ -198,6 +209,7 @@ function ReaderContent() {
     },
     [
       activeColumn,
+      iframeMode,
       sidebarCursorIndex,
       sidebarItems,
       filteredArticles,
@@ -247,6 +259,8 @@ function ReaderContent() {
         isActive={activeColumn === "article"}
         onActivate={() => setActiveColumn("article")}
         viewRef={articleViewRef}
+        iframeMode={iframeMode}
+        onIframeClose={() => setIframeMode(false)}
       />
     </div>
   );

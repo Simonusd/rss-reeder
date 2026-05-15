@@ -58,7 +58,7 @@ users/{userId}/
 
 Article document ID = `btoa(article.url)` — set in `saveArticles()` in `src/lib/firestore.ts`.
 
-**Required composite index** — the query `where("feedId", "==", ...)` + `orderBy("publishedAt", "desc")` on the `articles` collection requires a Firestore composite index. Create it in Firebase Console (the error message in the browser console contains a direct link to create it).
+**Article query design** — `subscribeToArticles` in `src/lib/firestore.ts` uses `where("feedId", "==", feedId)` **without** `orderBy` when filtering by feed, to avoid the Firestore composite index requirement (`where` on one field + `orderBy` on a different field always requires a composite index). Sorting by `publishedAt` is done client-side in `useArticles` hook. The "all articles" query (no `where`) still uses Firestore-side `orderBy("publishedAt", "desc")`. **Do not add `orderBy` back to the feedId query** without first creating the composite index in Firebase Console.
 
 ### Layout
 
