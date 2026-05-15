@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { addFeed } from "@/lib/firestore";
+import { addFeed, saveArticles } from "@/lib/firestore";
+import type { Article } from "@/types";
 
 interface Props {
   userId: string;
@@ -24,7 +25,7 @@ export default function AddFeedModal({ userId, onClose }: Props) {
 
       if (!res.ok) throw new Error(data.error);
 
-      await addFeed(userId, {
+      const feedId = await addFeed(userId, {
         url,
         title: data.meta.title,
         description: data.meta.description,
@@ -33,6 +34,9 @@ export default function AddFeedModal({ userId, onClose }: Props) {
         unreadCount: data.articles.length,
         favicon: data.meta.favicon,
       });
+
+      const articles = (data.articles as Omit<Article, "id">[]).map((a) => ({ ...a, feedId }));
+      await saveArticles(userId, articles);
 
       onClose();
     } catch (err) {

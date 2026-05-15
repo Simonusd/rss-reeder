@@ -19,6 +19,7 @@ export default function Sidebar({ userId }: Props) {
 
   async function handleLogout() {
     await logout();
+    document.cookie = "session=; path=/; max-age=0";
     router.replace("/login");
   }
 

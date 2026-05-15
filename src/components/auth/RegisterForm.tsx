@@ -18,6 +18,7 @@ export default function RegisterForm() {
     setLoading(true);
     try {
       await register(email, password);
+      document.cookie = "session=1; path=/; max-age=2592000; SameSite=Strict";
       router.replace("/reader");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Błąd rejestracji.");

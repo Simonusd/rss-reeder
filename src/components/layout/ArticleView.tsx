@@ -22,7 +22,7 @@ export default function ArticleView({ userId }: Props) {
       setArticle(null);
       return;
     }
-    getDoc(doc(db, "users", userId, "articles", articleId)).then((snap) => {
+    getDoc(doc(db(), "users", userId, "articles", articleId)).then((snap) => {
       if (snap.exists()) setArticle({ id: snap.id, ...snap.data() } as Article);
     });
   }, [articleId, userId]);

@@ -23,7 +23,7 @@ export default function ArticlePage() {
 
   useEffect(() => {
     if (!user || !params.id) return;
-    getDoc(doc(db, "users", user.uid, "articles", params.id)).then((snap) => {
+    getDoc(doc(db(), "users", user.uid, "articles", params.id)).then((snap) => {
       if (snap.exists()) setArticle({ id: snap.id, ...snap.data() } as Article);
     });
   }, [user, params.id]);

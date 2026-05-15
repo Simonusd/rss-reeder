@@ -8,19 +8,19 @@ import {
 import { auth } from "./firebase";
 
 export async function register(email: string, password: string): Promise<User> {
-  const result = await createUserWithEmailAndPassword(auth, email, password);
+  const result = await createUserWithEmailAndPassword(auth(), email, password);
   return result.user;
 }
 
 export async function login(email: string, password: string): Promise<User> {
-  const result = await signInWithEmailAndPassword(auth, email, password);
+  const result = await signInWithEmailAndPassword(auth(), email, password);
   return result.user;
 }
 
 export async function logout(): Promise<void> {
-  await signOut(auth);
+  await signOut(auth());
 }
 
 export function onAuthChange(callback: (user: User | null) => void) {
-  return onAuthStateChanged(auth, callback);
+  return onAuthStateChanged(auth(), callback);
 }

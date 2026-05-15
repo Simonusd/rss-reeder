@@ -18,9 +18,17 @@ export default function LoginForm() {
     setLoading(true);
     try {
       await login(email, password);
+      document.cookie = "session=1; path=/; max-age=2592000; SameSite=Strict";
       router.replace("/reader");
-    } catch {
-      setError("Nieprawidłowy email lub hasło.");
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+        setError("Nieprawidłowy email lub hasło.");
+      } else if (code === "auth/operation-not-allowed") {
+        setError("Logowanie emailem nie jest włączone w Firebase Console.");
+      } else {
+        setError((err as Error)?.message ?? "Błąd logowania.");
+      }
     } finally {
       setLoading(false);
     }
