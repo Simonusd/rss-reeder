@@ -68,6 +68,22 @@ Mobile: single-column with bottom navigation
 All view state is URL-driven: `?feedId=`, `?filter=unread|bookmarks`, `?articleId=`.  
 Child components receive these as props — **do not call `useSearchParams()` in child components**, only in the top-level page component (`ReaderContent` in `reader/page.tsx`).
 
+### Sidebar feed/folder management
+
+Right-click on any feed or folder opens a context menu (`src/components/ui/ContextMenu.tsx`) with:
+- **Zmień nazwę** — inline rename: the title text becomes an `<input>`, Enter saves, Escape cancels
+- **Usuń** — opens a confirmation dialog (`src/components/ui/ConfirmDialog.tsx`) before deleting
+
+Both components render via `createPortal` to `document.body`. Firestore functions used: `updateFeed`, `deleteFeed`, `updateFolder`, `deleteFolder`. Deleting a folder moves its feeds to unassigned (`folderId: null`) rather than deleting them.
+
+### Article list search
+
+`ArticleList` (`src/components/layout/ArticleList.tsx`) has a magnifying-glass button in its header. Clicking it slides down a search input (CSS `max-h` transition). Filtering is client-side, title-only. State (`searchOpen`, `searchQuery`) is local to `ArticleList` and resets when `feedId` or `filter` prop changes.
+
+### Iframe mode — cookie consent blocking
+
+`/api/proxy/route.ts` injects a `<style>` + `<script>` block into every proxied HTML page. The CSS hides known cookie-consent overlays (OneTrust, CookieBot, CookieConsent, Complianz, Borlabs, etc.) immediately. The script adds a `MutationObserver` to catch popups injected asynchronously, and restores `body { overflow: auto }` which sites often lock when a modal is open.
+
 ### State management pattern in `/reader`
 
 `src/app/reader/page.tsx` (`ReaderContent`) owns all shared state and lifts hooks up:
@@ -149,6 +165,9 @@ AI settings (provider + API key), summarize, translate to Polish, auto-tags, sen
 
 ### Stage 4 — Extras (in progress)
 - ✅ Keyboard shortcuts: ↑↓ navigate articles, ←→ switch columns, ↑↓ in sidebar navigates filters/feeds
+- ✅ Feed/folder management: right-click context menu → rename (inline) / delete (with confirmation)
+- ✅ Article list search: magnifying-glass icon slides out a title search field
+- ✅ Cookie consent blocking in iframe mode (injected via `/api/proxy`)
 - ⬜ R — mark as read, B — bookmark, O — open original URL
 - ⬜ Keyword alerts
 - ⬜ Reading stats/streak
