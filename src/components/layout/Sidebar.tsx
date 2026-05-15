@@ -7,7 +7,8 @@ import FolderItem from "@/components/feeds/FolderItem";
 import FeedItem from "@/components/feeds/FeedItem";
 import AddFeedModal from "@/components/feeds/AddFeedModal";
 import { logout } from "@/lib/auth";
-import type { Feed, Folder } from "@/types";
+import { saveArticles, updateFeed } from "@/lib/firestore";
+import type { Feed, Folder, Article } from "@/types";
 
 interface Props {
   userId: string;
@@ -23,7 +24,30 @@ const BASE_LINK = "flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-20
 
 export default function Sidebar({ userId, feeds, folders, isActive, onActivate, highlightedKey }: Props) {
   const [showAddFeed, setShowAddFeed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+
+  async function handleRefresh(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.all(feeds.map(async (feed) => {
+        try {
+          const res = await fetch(`/api/fetch-feed?url=${encodeURIComponent(feed.url)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          const articles = (data.articles as Omit<Article, "id">[]).map((a) => ({ ...a, feedId: feed.id }));
+          await saveArticles(userId, articles);
+          await updateFeed(userId, feed.id, { lastFetched: new Date() });
+        } catch {
+          // ignoruj błąd pojedynczego feedu
+        }
+      }));
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function handleLogout() {
     await logout();
@@ -42,13 +66,36 @@ export default function Sidebar({ userId, feeds, folders, isActive, onActivate, 
     >
       <div className="p-4 border-b flex items-center justify-between">
         <span className="font-bold text-lg">RSS Reader</span>
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowAddFeed(true); }}
-          className="text-blue-600 hover:text-blue-800 text-xl font-bold"
-          title="Dodaj feed"
-        >
-          +
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="text-gray-500 hover:text-blue-600 disabled:opacity-50"
+            title="Odśwież feedy"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+            >
+              <path d="M23 4v6h-6" />
+              <path d="M1 20v-6h6" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowAddFeed(true); }}
+            className="text-blue-600 hover:text-blue-800 text-xl font-bold"
+            title="Dodaj feed"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2 space-y-1">
