@@ -7,8 +7,8 @@ import FolderItem from "@/components/feeds/FolderItem";
 import FeedItem from "@/components/feeds/FeedItem";
 import AddFeedModal from "@/components/feeds/AddFeedModal";
 import { logout } from "@/lib/auth";
-import { saveArticles, updateFeed } from "@/lib/firestore";
-import type { Feed, Folder, Article } from "@/types";
+import { saveArticlesForRefresh } from "@/lib/firestore";
+import type { Feed, Folder } from "@/types";
 
 interface Props {
   userId: string;
@@ -37,9 +37,7 @@ export default function Sidebar({ userId, feeds, folders, isActive, onActivate, 
           const res = await fetch(`/api/fetch-feed?url=${encodeURIComponent(feed.url)}`);
           if (!res.ok) return;
           const data = await res.json();
-          const articles = (data.articles as Omit<Article, "id">[]).map((a) => ({ ...a, feedId: feed.id }));
-          await saveArticles(userId, articles);
-          await updateFeed(userId, feed.id, { lastFetched: new Date() });
+          await saveArticlesForRefresh(userId, feed.id, data.articles);
         } catch {
           // ignoruj błąd pojedynczego feedu
         }

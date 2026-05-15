@@ -103,8 +103,50 @@ export async function saveArticles(userId: string, articles: Omit<Article, "id">
   );
 }
 
-export async function markAsRead(userId: string, articleId: string, isRead: boolean): Promise<void> {
-  await updateDoc(doc(db(), "users", userId, "articles", articleId), { isRead });
+export async function markAsRead(userId: string, articleId: string, isRead: boolean, feedId: string): Promise<void> {
+  const db_ = db();
+  await updateDoc(doc(db_, "users", userId, "articles", articleId), { isRead });
+  const feedRef = doc(db_, "users", userId, "feeds", feedId);
+  const feedSnap = await getDoc(feedRef);
+  const curr = Number(feedSnap.data()?.unreadCount ?? 0);
+  await updateDoc(feedRef, { unreadCount: Math.max(0, curr + (isRead ? -1 : 1)) });
+}
+
+export async function saveArticlesForRefresh(
+  userId: string,
+  feedId: string,
+  articles: Omit<Article, "id">[]
+): Promise<void> {
+  const existingSnap = await getDocs(
+    query(collection(db(), "users", userId, "articles"), where("feedId", "==", feedId))
+  );
+  const existingIds = new Set(existingSnap.docs.map((d) => d.id));
+
+  let newCount = 0;
+
+  await Promise.all(
+    articles.map(async (article) => {
+      const id = btoa(article.url);
+      const ref = doc(db(), "users", userId, "articles", id);
+
+      if (existingIds.has(id)) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { isRead, isBookmarked, summary, tags, sentiment, ...content } = article;
+        await updateDoc(ref, { ...content, feedId });
+      } else {
+        await setDoc(ref, { ...article, feedId, isRead: false, isBookmarked: false });
+        newCount++;
+      }
+    })
+  );
+
+  const feedRef = doc(db(), "users", userId, "feeds", feedId);
+  const feedSnap = await getDoc(feedRef);
+  const curr = Number(feedSnap.data()?.unreadCount ?? 0);
+  await updateDoc(feedRef, {
+    unreadCount: curr + newCount,
+    lastFetched: serverTimestamp(),
+  });
 }
 
 export async function toggleBookmark(userId: string, articleId: string, isBookmarked: boolean): Promise<void> {

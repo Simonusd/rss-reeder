@@ -33,7 +33,7 @@ export default function ArticleCard({ article, userId, feedId, filter, isSelecte
     params.set("articleId", article.id);
     router.push(`/reader?${params.toString()}`);
     if (!article.isRead) {
-      markAsRead(userId, article.id, true);
+      markAsRead(userId, article.id, true, article.feedId);
     }
   }
 

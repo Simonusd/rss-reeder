@@ -207,7 +207,7 @@ function ReaderContent() {
           params.set("articleId", next.id);
           router.push(`/reader?${params.toString()}`);
 
-          if (!next.isRead && user) markAsRead(user.uid, next.id, true);
+          if (!next.isRead && user) markAsRead(user.uid, next.id, true, next.feedId);
           cardRefs.current.get(next.id)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
       }
