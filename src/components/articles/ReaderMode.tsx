@@ -12,6 +12,7 @@ export default function ReaderMode({ article }: Props) {
   const [loadingReadable, setLoadingReadable] = useState(false);
 
   useEffect(() => {
+    setContent(article.content);
     if (!article.content && article.url) {
       setLoadingReadable(true);
       fetch(`/api/fetch-article?url=${encodeURIComponent(article.url)}`)
@@ -21,7 +22,7 @@ export default function ReaderMode({ article }: Props) {
         })
         .finally(() => setLoadingReadable(false));
     }
-  }, [article.url, article.content]);
+  }, [article.id, article.url, article.content]);
 
   return (
     <article className="mt-6">

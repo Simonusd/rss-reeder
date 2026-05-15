@@ -58,6 +58,8 @@ users/{userId}/
 
 Article document ID = `btoa(article.url)` — set in `saveArticles()` in `src/lib/firestore.ts`.
 
+**Required composite index** — the query `where("feedId", "==", ...)` + `orderBy("publishedAt", "desc")` on the `articles` collection requires a Firestore composite index. Create it in Firebase Console (the error message in the browser console contains a direct link to create it).
+
 ### Layout
 
 Desktop: 3-column (sidebar | article list | article content)  
@@ -75,6 +77,8 @@ Child components receive these as props — **do not call `useSearchParams()` in
 - `activeColumn`, `sidebarCursorIndex` — keyboard navigation state
 
 Props flow down to `Sidebar`, `ArticleList`, `ArticleView`.
+
+**ReaderMode content state** — `src/components/articles/ReaderMode.tsx` keeps a local `content` state. **Never initialize it as `useState(article.content)` and rely on prop changes to update it** — `useState` only runs once on mount. Instead, always reset `content` via `useEffect` keyed on `article.id`, then conditionally fetch from the API if Firestore has no content. See current implementation for the correct pattern.
 
 ### Auth & Session
 
