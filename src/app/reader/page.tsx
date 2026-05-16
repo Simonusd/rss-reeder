@@ -264,7 +264,6 @@ function ReaderContent() {
         userId={user.uid}
         feeds={feeds}
         folders={folders}
-        isActive={activeColumn === "sidebar"}
         onActivate={() => setActiveColumn("sidebar")}
         highlightedKey={sidebarHighlightKey}
         onRefreshComplete={handleRefreshComplete}
@@ -274,7 +273,6 @@ function ReaderContent() {
         feedId={feedId}
         filter={filter}
         articleId={articleId}
-        isActive={activeColumn === "list"}
         onActivate={() => setActiveColumn("list")}
         filteredArticles={filteredArticles}
         loading={articlesLoading}
@@ -283,7 +281,6 @@ function ReaderContent() {
       <ArticleView
         userId={user.uid}
         articleId={articleId}
-        isActive={activeColumn === "article"}
         onActivate={() => setActiveColumn("article")}
         viewRef={articleViewRef}
         iframeMode={iframeMode}

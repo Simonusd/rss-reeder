@@ -11,7 +11,6 @@ import AIToolbar from "@/components/ai/AIToolbar";
 interface Props {
   userId: string;
   articleId: string | null;
-  isActive: boolean;
   onActivate: () => void;
   viewRef: React.RefObject<HTMLElement | null>;
   iframeMode: boolean;
@@ -19,7 +18,7 @@ interface Props {
 }
 
 export default function ArticleView({
-  userId, articleId, isActive, onActivate, viewRef, iframeMode, onIframeClose,
+  userId, articleId, onActivate, viewRef, iframeMode, onIframeClose,
 }: Props) {
   const [article, setArticle] = useState<Article | null>(null);
 
@@ -29,10 +28,6 @@ export default function ArticleView({
       if (snap.exists()) setArticle({ id: snap.id, ...snap.data() } as Article);
     });
   }, [articleId, userId]);
-
-  const ringStyle: React.CSSProperties = isActive
-    ? { outline: "2px solid var(--color-accent)", outlineOffset: "-2px" }
-    : {};
 
   if (!article) {
     return (
@@ -48,7 +43,6 @@ export default function ArticleView({
           justifyContent: "center",
           background: "var(--color-bg-primary)",
           outline: "none",
-          ...ringStyle,
         }}
       >
         <div className="text-center px-8">
@@ -76,7 +70,6 @@ export default function ArticleView({
         overflow: iframeMode ? "hidden" : "auto",
         display: "flex",
         flexDirection: "column",
-        ...ringStyle,
       }}
     >
       {iframeMode ? (

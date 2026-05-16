@@ -18,7 +18,6 @@ interface Props {
   userId: string;
   feeds: Feed[];
   folders: Folder[];
-  isActive: boolean;
   onActivate: () => void;
   highlightedKey: string | null;
   onRefreshComplete: () => void;
@@ -28,7 +27,7 @@ const NAV_ITEM =
   "flex items-center gap-2.5 px-3 rounded-lg h-9 text-sm transition-colors duration-150 w-full";
 
 export default function Sidebar({
-  userId, feeds, folders, isActive, onActivate, highlightedKey, onRefreshComplete,
+  userId, feeds, folders, onActivate, highlightedKey, onRefreshComplete,
 }: Props) {
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,14 +65,11 @@ export default function Sidebar({
   return (
     <aside
       onClick={onActivate}
-      className={`h-full flex flex-col shrink-0 transition-shadow ${
-        isActive ? "ring-2 ring-inset" : ""
-      }`}
+      className="h-full flex flex-col shrink-0"
       style={{
         width: 260,
         background: "var(--color-bg-secondary)",
         borderRight: "1px solid var(--color-separator)",
-        ...(isActive ? { "--tw-ring-color": "var(--color-accent)" } as React.CSSProperties : {}),
       }}
     >
       {/* Toolbar */}

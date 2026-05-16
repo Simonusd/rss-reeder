@@ -10,7 +10,6 @@ interface Props {
   feedId: string | null;
   filter: string | null;
   articleId: string | null;
-  isActive: boolean;
   onActivate: () => void;
   filteredArticles: Article[];
   loading: boolean;
@@ -37,7 +36,7 @@ function filterTitle(filter: string | null, feedId: string | null): string {
 }
 
 export default function ArticleList({
-  userId, feedId, filter, articleId, isActive, onActivate,
+  userId, feedId, filter, articleId, onActivate,
   filteredArticles, loading, setCardRef,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -59,14 +58,11 @@ export default function ArticleList({
   return (
     <div
       onClick={onActivate}
-      className={`h-full flex flex-col shrink-0 transition-shadow ${
-        isActive ? "ring-2 ring-inset" : ""
-      }`}
+      className="h-full flex flex-col shrink-0"
       style={{
         width: 380,
         background: "var(--color-bg-primary)",
         borderRight: "1px solid var(--color-separator)",
-        ...(isActive ? { "--tw-ring-color": "var(--color-accent)" } as React.CSSProperties : {}),
       }}
     >
       {/* Toolbar */}

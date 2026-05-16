@@ -26,6 +26,12 @@ npm run lint      # ESLint check
 npm start         # start production server
 ```
 
+> **Jeśli devserver zgłasza `ENOENT: .next/server/pages/_document.js`** — usuń cache i zrestartuj:
+> ```bash
+> rm -rf .next && npm run dev
+> ```
+> Przyczyna: dwie równoczesne instancje `next dev` niszczą cache buildu.
+
 ## Styling System
 
 ### CSS Variables (globals.css)
@@ -224,7 +230,7 @@ Implemented in `ReaderContent` via a `window` `keydown` listener (`handleKeyDown
 | `↑` / `↓` | article view | Scroll content by 120px |
 
 - Ignored when focus is in `input` or `textarea`
-- Active column shown with `ring-2 ring-inset` using `--color-accent`
+- Active column has **no visible border** — `activeColumn` state exists only for keyboard logic, never rendered as a ring/outline
 - Highlighted sidebar item shown with `rgba(0, 122, 255, 0.08)` background
 - `highlightedKey` string format: `"all"`, `"filter:unread"`, `"filter:bookmarks"`, `"folder:{id}"`, `"feed:{id}"`
 
