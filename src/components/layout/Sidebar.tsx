@@ -17,12 +17,13 @@ interface Props {
   isActive: boolean;
   onActivate: () => void;
   highlightedKey: string | null;
+  onRefreshComplete: () => void;
 }
 
 const HL = "bg-blue-100 dark:bg-blue-900";
 const BASE_LINK = "flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm";
 
-export default function Sidebar({ userId, feeds, folders, isActive, onActivate, highlightedKey }: Props) {
+export default function Sidebar({ userId, feeds, folders, isActive, onActivate, highlightedKey, onRefreshComplete }: Props) {
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
@@ -44,6 +45,7 @@ export default function Sidebar({ userId, feeds, folders, isActive, onActivate, 
       }));
     } finally {
       setRefreshing(false);
+      onRefreshComplete();
     }
   }
 

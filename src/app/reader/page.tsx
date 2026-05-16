@@ -49,6 +49,8 @@ function ReaderContent() {
   const [iframeMode, setIframeMode] = useState(false);
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const articleViewRef = useRef<HTMLElement>(null);
+  const feedIdRef = useRef<string | null>(null);
+  const filterRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -61,7 +63,19 @@ function ReaderContent() {
   const filter = searchParams.get("filter");
   const articleId = searchParams.get("articleId");
 
+  feedIdRef.current = feedId;
+  filterRef.current = filter;
+
   useEffect(() => { setIframeMode(false); }, [articleId]);
+
+  const handleRefreshComplete = useCallback(() => {
+    if (!filterRef.current) {
+      const params = new URLSearchParams();
+      if (feedIdRef.current) params.set("feedId", feedIdRef.current);
+      params.set("filter", "unread");
+      router.push(`/reader?${params.toString()}`);
+    }
+  }, [router]);
 
   const { articles, loading: articlesLoading } = useArticles(user?.uid ?? null, feedId);
   const { feeds, folders } = useFeeds(user?.uid ?? null);
@@ -246,6 +260,7 @@ function ReaderContent() {
         isActive={activeColumn === "sidebar"}
         onActivate={() => setActiveColumn("sidebar")}
         highlightedKey={sidebarHighlightKey}
+        onRefreshComplete={handleRefreshComplete}
       />
       <ArticleList
         userId={user.uid}
