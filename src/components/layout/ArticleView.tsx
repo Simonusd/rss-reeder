@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ChevronLeft, ExternalLink } from "lucide-react";
@@ -21,13 +21,19 @@ export default function ArticleView({
   userId, articleId, onActivate, viewRef, iframeMode, onIframeClose,
 }: Props) {
   const [article, setArticle] = useState<Article | null>(null);
+  const [fetchedContent, setFetchedContent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!articleId) { setArticle(null); return; }
     getDoc(doc(db(), "users", userId, "articles", articleId)).then((snap) => {
       if (snap.exists()) setArticle({ id: snap.id, ...snap.data() } as Article);
     });
+    setFetchedContent(null);
   }, [articleId, userId]);
+
+  const handleContentFetched = useCallback((content: string) => {
+    setFetchedContent(content);
+  }, []);
 
   if (!article) {
     return (
@@ -110,8 +116,8 @@ export default function ArticleView({
         </div>
       ) : (
         <div style={{ maxWidth: 760, margin: "0 auto", width: "100%", padding: "0 0 80px" }}>
-          <AIToolbar article={article} userId={userId} />
-          <ReaderMode article={article} />
+          <AIToolbar article={article} userId={userId} onContentFetched={handleContentFetched} />
+          <ReaderMode article={article} contentOverride={fetchedContent} />
         </div>
       )}
     </main>

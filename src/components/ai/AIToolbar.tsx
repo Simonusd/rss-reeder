@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Languages, MessageSquare, ExternalLink, Tag } from "lucide-react";
+import { Sparkles, Languages, MessageSquare, ExternalLink, Tag, BookOpen, RefreshCw } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { updateArticle } from "@/lib/firestore";
 import type { Article } from "@/types";
@@ -9,6 +9,7 @@ import type { Article } from "@/types";
 interface Props {
   article: Article;
   userId: string;
+  onContentFetched: (content: string) => void;
 }
 
 const ACTIONS = [
@@ -18,13 +19,25 @@ const ACTIONS = [
   { key: "sentiment",  label: "Sentyment",    icon: MessageSquare },
 ] as const;
 
-export default function AIToolbar({ article, userId }: Props) {
+export default function AIToolbar({ article, userId, onContentFetched }: Props) {
   const { settings } = useSettings(userId);
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [fetchingContent, setFetchingContent] = useState(false);
 
-  if (!settings.aiApiKey) return null;
+  async function fetchFullContent() {
+    setFetchingContent(true);
+    try {
+      const res = await fetch(`/api/fetch-article?url=${encodeURIComponent(article.url)}`);
+      const data = await res.json();
+      if (data.content) onContentFetched(data.content);
+    } catch {
+      // silently fail
+    } finally {
+      setFetchingContent(false);
+    }
+  }
 
   async function runAction(action: string) {
     setLoading(true);
@@ -73,16 +86,30 @@ export default function AIToolbar({ article, userId }: Props) {
     >
       {/* Button row */}
       <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", gap: 6, flexWrap: "wrap" }}>
-        {ACTIONS.map(({ key, label, icon: Icon }) => (
-          <AIButton
-            key={key}
-            label={label}
-            icon={<Icon size={14} />}
-            active={activeAction === key && loading}
-            onClick={() => runAction(key)}
-            disabled={loading}
-          />
-        ))}
+        <AIButton
+          label="Pobierz treść"
+          icon={fetchingContent
+            ? <RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} />
+            : <BookOpen size={14} />}
+          active={fetchingContent}
+          onClick={fetchFullContent}
+          disabled={fetchingContent || loading}
+        />
+        {settings.aiApiKey && (
+          <>
+            <div style={{ width: 1, height: 18, background: "var(--color-separator)", margin: "0 2px" }} />
+            {ACTIONS.map(({ key, label, icon: Icon }) => (
+              <AIButton
+                key={key}
+                label={label}
+                icon={<Icon size={14} />}
+                active={activeAction === key && loading}
+                onClick={() => runAction(key)}
+                disabled={loading || fetchingContent}
+              />
+            ))}
+          </>
+        )}
         <div style={{ flex: 1 }} />
         <a
           href={article.url}

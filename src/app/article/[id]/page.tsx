@@ -14,6 +14,7 @@ export default function ArticlePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [article, setArticle] = useState<Article | null>(null);
+  const [fetchedContent, setFetchedContent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -34,8 +35,8 @@ export default function ArticlePage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <AIToolbar article={article} userId={user.uid} />
-      <ReaderMode article={article} />
+      <AIToolbar article={article} userId={user.uid} onContentFetched={setFetchedContent} />
+      <ReaderMode article={article} contentOverride={fetchedContent} />
     </div>
   );
 }

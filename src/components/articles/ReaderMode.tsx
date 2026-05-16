@@ -6,6 +6,7 @@ import type { Article } from "@/types";
 
 interface Props {
   article: Article;
+  contentOverride?: string | null;
 }
 
 function formatPublished(date: Date | { seconds: number }): string {
@@ -15,11 +16,16 @@ function formatPublished(date: Date | { seconds: number }): string {
   });
 }
 
-export default function ReaderMode({ article }: Props) {
+export default function ReaderMode({ article, contentOverride }: Props) {
   const [content, setContent] = useState(article.content);
   const [loadingReadable, setLoadingReadable] = useState(false);
 
   useEffect(() => {
+    if (contentOverride) {
+      setContent(contentOverride);
+      setLoadingReadable(false);
+      return;
+    }
     setContent(article.content);
     if (!article.content && article.url) {
       setLoadingReadable(true);
@@ -28,7 +34,7 @@ export default function ReaderMode({ article }: Props) {
         .then((data) => { if (data.content) setContent(data.content); })
         .finally(() => setLoadingReadable(false));
     }
-  }, [article.id, article.url, article.content]);
+  }, [article.id, article.url, article.content, contentOverride]);
 
   return (
     <article style={{ padding: "40px 48px 96px" }}>
