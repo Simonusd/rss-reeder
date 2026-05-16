@@ -322,7 +322,6 @@ function ToolbarIconButton({ title, children, style, disabled, as: Tag = "button
     ...style,
   };
   return (
-    // @ts-expect-error dynamic tag
     <Tag
       title={title}
       style={base}

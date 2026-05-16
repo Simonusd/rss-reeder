@@ -195,7 +195,7 @@ Child components receive these as props — **do not call `useSearchParams()` in
 
 ### `/article/[id]/` route
 
-`src/app/article/[id]/page.tsx` — standalone article view (mobile PWA share target / direct link). Fetches the article document once from Firestore (no real-time subscription). Renders `ReaderMode` + `AIToolbar`. The route is protected by middleware.
+`src/app/article/[id]/page.tsx` — standalone article view (mobile PWA share target / direct link). Fetches the article document once from Firestore (no real-time subscription). Renders `AIToolbar` (`src/components/ai/AIToolbar.tsx`) + `ReaderMode`. The route is protected by middleware.
 
 ### Settings page navigation
 
@@ -274,21 +274,27 @@ Implemented in `ReaderContent` via a `window` `keydown` listener (`handleKeyDown
 Actions: `summarize` | `translate` | `autotag` | `sentiment` | `chat`
 The user's API key comes from their Firestore settings document and is forwarded to the provider — it must never be logged.
 
-Cała logika AI i pobierania treści jest w `ArticleView` (`src/components/layout/ArticleView.tsx`). Toolbar trzeciej kolumny zawiera ikony (icon-only, 16px):
+Logika AI i pobierania treści jest w dwóch miejscach:
+
+- **`ArticleView`** (`src/components/layout/ArticleView.tsx`) — główny widok 3-kolumnowy
+- **`AIToolbar`** (`src/components/ai/AIToolbar.tsx`) — samodzielny komponent używany w `/article/[id]/`; przyjmuje `{ article, userId, onContentFetched }`
+
+Oba komponenty mają tę samą logikę: `fetchFullContent()` i `runAI()`. **Nie duplikuj tej logiki w innych miejscach.**
+
+Toolbar zawiera ikony (icon-only, 16px):
 
 ```
 [BookOpen] [Sparkles] [Languages] [Tag] | [Share] [ExternalLink]
 ```
 
-- **BookOpen** — zawsze aktywny; wywołuje `fetchFullContent()` → `GET /api/fetch-article?url=...` → `setFetchedContent(content)` → `ReaderMode.contentOverride`
+- **BookOpen** — zawsze aktywny; wywołuje `fetchFullContent()` → `GET /api/fetch-article?url=...` → `ReaderMode.contentOverride`
 - **Sparkles / Languages / Tag** — aktywne tylko gdy `settings.aiApiKey`; wywołują `runAI("summarize"|"translate"|"autotag")`
-- Wynik AI pojawia się w sticky panelu między toolbarem (`top: 52px`) a treścią artykułu; przycisk X zamyka panel
+- Wynik AI pojawia się w panelu pod toolbarem; przycisk X zamyka panel
 - `fetchedContent` i `aiResult` resetowane przy każdej zmianie `articleId`
 
 Przepływ danych:
 ```
-ArticleView.fetchFullContent() → /api/fetch-article → setFetchedContent(content)
-fetchedContent → ReaderMode.contentOverride prop → setContent(contentOverride)
+fetchFullContent() → /api/fetch-article → onContentFetched(content) → ReaderMode.contentOverride
 ```
 
 `ReaderMode` przyjmuje `contentOverride?: string | null` — gdy ustawiony, pomija auto-fetch z Firestore.
