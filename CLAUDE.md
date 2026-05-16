@@ -84,6 +84,8 @@ Defined in `globals.css`: `.text-large-title`, `.text-title1`, `.text-title2`, `
 
 Use **only** `lucide-react` icons. Size convention: 14px (sidebar items), 16px (toolbar buttons), 20px (large actions). Color is always `currentColor`. Never use emoji as UI icons (only in empty states).
 
+**iOS icon style rule:** Always prefer the iOS-style variant of an icon. Key substitutions: `Share` (not `Share2`), `MessageCircle` (not `MessageSquare`).
+
 Icon mapping:
 ```
 Feedy/RSS:     Rss
@@ -95,7 +97,7 @@ Nowy feed:     Plus
 Odśwież:       RefreshCw
 AI/Streść:     Sparkles
 Tłumaczenie:   Languages
-Chat AI:       MessageSquare
+Chat AI:       MessageCircle
 Oryginał:      ExternalLink
 Wróć:          ChevronLeft
 Chevron:       ChevronRight

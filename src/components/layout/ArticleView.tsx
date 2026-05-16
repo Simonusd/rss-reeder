@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ChevronLeft, ExternalLink } from "lucide-react";
+import { ChevronLeft, ExternalLink, Share } from "lucide-react";
 import type { Article } from "@/types";
 import ReaderMode from "@/components/articles/ReaderMode";
 import AIToolbar from "@/components/ai/AIToolbar";
@@ -22,6 +22,19 @@ export default function ArticleView({
 }: Props) {
   const [article, setArticle] = useState<Article | null>(null);
   const [fetchedContent, setFetchedContent] = useState<string | null>(null);
+  const [iframeCopied, setIframeCopied] = useState(false);
+
+  async function shareIframe(url: string, title: string) {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setIframeCopied(true);
+      setTimeout(() => setIframeCopied(false), 2000);
+    }
+  }
 
   useEffect(() => {
     if (!articleId) { setArticle(null); return; }
@@ -99,6 +112,23 @@ export default function ArticleView({
             >
               {article.url}
             </span>
+            <button
+              onClick={() => shareIframe(article.url, article.title)}
+              title="Udostępnij"
+              style={{
+                color: iframeCopied ? "var(--color-accent-green)" : "var(--color-label-secondary)",
+                flexShrink: 0,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                transition: "color 0.15s",
+              }}
+            >
+              <Share size={14} />
+            </button>
             <a
               href={article.url}
               target="_blank"

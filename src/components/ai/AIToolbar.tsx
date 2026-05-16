@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Languages, MessageSquare, ExternalLink, Tag, BookOpen, RefreshCw } from "lucide-react";
+import { Sparkles, Languages, MessageCircle, ExternalLink, Tag, BookOpen, RefreshCw, Share } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { updateArticle } from "@/lib/firestore";
 import type { Article } from "@/types";
@@ -16,7 +16,7 @@ const ACTIONS = [
   { key: "summarize",  label: "Streść",       icon: Sparkles },
   { key: "translate",  label: "Przetłumacz",  icon: Languages },
   { key: "autotag",    label: "Tagi",         icon: Tag },
-  { key: "sentiment",  label: "Sentyment",    icon: MessageSquare },
+  { key: "sentiment",  label: "Sentyment",    icon: MessageCircle },
 ] as const;
 
 export default function AIToolbar({ article, userId, onContentFetched }: Props) {
@@ -25,6 +25,19 @@ export default function AIToolbar({ article, userId, onContentFetched }: Props) 
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [fetchingContent, setFetchingContent] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function share() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: article.title, url: article.url });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(article.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
 
   async function fetchFullContent() {
     setFetchingContent(true);
@@ -111,6 +124,30 @@ export default function AIToolbar({ article, userId, onContentFetched }: Props) 
           </>
         )}
         <div style={{ flex: 1 }} />
+        <button
+          onClick={share}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            height: 32,
+            padding: "0 12px",
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 500,
+            color: copied ? "var(--color-accent-green)" : "var(--color-label-secondary)",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            transition: "background 0.15s, color 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+        >
+          <Share size={13} />
+          {copied ? "Skopiowano!" : "Udostępnij"}
+        </button>
+        <div style={{ width: 1, height: 18, background: "var(--color-separator)", margin: "0 2px" }} />
         <a
           href={article.url}
           target="_blank"
