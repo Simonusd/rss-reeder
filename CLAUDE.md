@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 RSS Reader PWA installable on macOS and mobile. Users add RSS/Atom feeds, read articles in Reader Mode (ad-free via `@mozilla/readability`), sync read status via Firebase Firestore, and use AI features (summarize, translate, auto-tag, sentiment, chat).
 
+## Design Reference
+
+`UI_REDESIGN.md` — kompletna specyfikacja Apple HIG dla tego projektu: kolory, typografia, spacing, radius, cienie, animacje, ASCII layouty i szczegóły każdego komponentu. **Czytaj przed każdą modyfikacją UI** — to autorytatywne źródło projektu wizualnego.
+
 ## Tech Stack
 
 - **Next.js 15** — App Router, TypeScript strict mode, server components by default
@@ -16,7 +20,7 @@ RSS Reader PWA installable on macOS and mobile. Users add RSS/Atom feeds, read a
 - **RSS parsing** — rss-parser (via API route, never direct from frontend due to CORS)
 - **Reader Mode** — @mozilla/readability + jsdom (via API route, same reason)
 
-TypeScript path alias: `@/` → `src/` (configured in `tsconfig.json`).
+TypeScript path alias: `@/` → `src/` (configured in `tsconfig.json`). All shared types (`Feed`, `Folder`, `Article`, `UserSettings`, `AIRequest`, etc.) are in `src/types/index.ts`.
 
 ## Commands
 
@@ -26,6 +30,7 @@ npm run dev       # start dev server
 npm run build     # production build
 npm run lint      # ESLint check
 npm start         # start production server
+node scripts/generate-icons.mjs  # regenerate PWA icons in public/icons/
 ```
 
 > **Jeśli devserver zgłasza `ENOENT: .next/server/pages/_document.js`** — usuń cache i zrestartuj:
