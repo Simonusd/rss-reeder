@@ -10,7 +10,8 @@ RSS Reader PWA installable on macOS and mobile. Users add RSS/Atom feeds, read a
 
 - **Next.js 15** — App Router, TypeScript strict mode, server components by default
 - **Firebase** — Firestore (real-time sync), Firebase Auth (email + password)
-- **Tailwind CSS** — all styling
+- **Tailwind CSS** — utility classes for layout; design tokens via CSS variables in `globals.css`
+- **lucide-react** — all icons (Rss, RefreshCw, Bookmark, Sparkles, etc.)
 - **PWA** — next-pwa, manifest.json, service worker
 - **RSS parsing** — rss-parser (via API route, never direct from frontend due to CORS)
 - **Reader Mode** — @mozilla/readability + jsdom (via API route, same reason)
@@ -23,6 +24,81 @@ npm run dev       # start dev server
 npm run build     # production build
 npm run lint      # ESLint check
 npm start         # start production server
+```
+
+## Styling System
+
+### CSS Variables (globals.css)
+
+All colors, spacing, radius, shadows and transitions are defined as CSS variables in `src/app/globals.css`. **Never hardcode hex values — always use variables.**
+
+```css
+/* Colors */
+--color-bg-primary / --color-bg-secondary / --color-bg-tertiary
+--color-label / --color-label-secondary / --color-label-tertiary / --color-label-quaternary
+--color-separator / --color-separator-opaque
+--color-accent / --color-accent-green / --color-accent-red / --color-accent-orange / --color-accent-purple / --color-accent-teal
+--color-material-thick / --color-material-regular / --color-material-thin
+
+/* Spacing (multiples of 4px) */
+--space-1 (4px) … --space-16 (64px)
+
+/* Border radius */
+--radius-sm (6px) / --radius-md (10px) / --radius-lg (14px) / --radius-xl (20px) / --radius-full (9999px)
+
+/* Shadows */
+--shadow-sm / --shadow-md / --shadow-lg
+
+/* Transitions */
+--transition-default / --transition-spring / --transition-fast
+```
+
+### Theme switching
+
+`AppearanceSettings` applies theme by adding/removing `.dark` or `.sepia` classes to `document.documentElement` via `useEffect`. The CSS variables for each theme are defined in `globals.css` under `.dark {}` and `.sepia {}` selectors (and `@media (prefers-color-scheme: dark)` for OS-level dark mode).
+
+**Do not add `dark:` Tailwind prefixes** — colors are handled entirely through CSS variables. Tailwind's `dark:` class system is wired to `darkMode: "class"` in `tailwind.config.ts` but the variable-based approach covers it already.
+
+### Typography classes
+
+Defined in `globals.css`: `.text-large-title`, `.text-title1`, `.text-title2`, `.text-title3`, `.text-headline`, `.text-body`, `.text-callout`, `.text-subheadline`, `.text-footnote`, `.text-caption`. Use these instead of arbitrary Tailwind text sizes.
+
+### UI component classes
+
+- `.toolbar` — sticky frosted-glass header (height 52px, backdrop-filter blur)
+- `.btn-primary` / `.btn-secondary` / `.btn-ghost` / `.btn-destructive` — button variants
+- `.input` — styled form input (height 44px, focus ring)
+- `.badge` — unread count pill (blue, 20px)
+- `.tag` — teal chip for article tags
+- `.modal` / `.modal-overlay` / `.modal-enter` — modal with spring animation
+- `.skeleton` — shimmer loading placeholder
+- `.reader-content` / `.reader-title` / `.reader-meta` — Reader Mode article layout
+
+### Icons
+
+Use **only** `lucide-react` icons. Size convention: 14px (sidebar items), 16px (toolbar buttons), 20px (large actions). Color is always `currentColor`. Never use emoji as UI icons (only in empty states).
+
+Icon mapping:
+```
+Feedy/RSS:     Rss
+Folder:        Folder
+Zakładki:      BookmarkIcon / BookmarkCheck
+Ustawienia:    Settings
+Szukaj:        Search
+Nowy feed:     Plus
+Odśwież:       RefreshCw
+AI/Streść:     Sparkles
+Tłumaczenie:   Languages
+Chat AI:       MessageSquare
+Oryginał:      ExternalLink
+Wróć:          ChevronLeft
+Chevron:       ChevronRight
+Zamknij:       X
+Tagi:          Tag
+Przeczytane:   CheckCircle2
+Nieprzeczytane: (filled circle span)
+Artykuły:      Newspaper
+Eye toggle:    Eye / EyeOff
 ```
 
 ## Architecture
@@ -66,21 +142,28 @@ Article document ID = `btoa(article.url)` — set in `saveArticles()` and `saveA
 
 ### Layout
 
-Desktop: 3-column (sidebar | article list | article content)  
+Desktop: 3-column (sidebar 260px | article list 380px | article content flex:1)
 Mobile: single-column with bottom navigation
 
-All view state is URL-driven: `?feedId=`, `?filter=unread|bookmarks`, `?articleId=`.  
+All view state is URL-driven: `?feedId=`, `?filter=unread|bookmarks|read`, `?articleId=`.
 Child components receive these as props — **do not call `useSearchParams()` in child components**, only in the top-level page component (`ReaderContent` in `reader/page.tsx`).
 
-### Sidebar header buttons
+### Sidebar
 
-The sidebar header (`src/components/layout/Sidebar.tsx`) has two buttons on the right:
-- **↺ (Odśwież)** — refreshes all feeds in parallel; calls `saveArticlesForRefresh()` for each feed. Shows a spinning animation (`animate-spin`) while running, disabled during refresh. Errors on individual feeds are silently ignored.
-- **+ (Dodaj)** — opens `AddFeedModal`.
+`src/components/layout/Sidebar.tsx` — Apple HIG sidebar with:
+- Toolbar (frosted glass, `.toolbar` class)
+- `RefreshCw` button — refreshes all feeds in parallel via `saveArticlesForRefresh()`, then calls `onRefreshComplete()` callback
+- `Plus` button — opens `AddFeedModal`
+- Nav links: Wszystkie / Nieprzeczytane / Zakładki / Przeczytane
+- Folders (`FolderItem`) and unassigned feeds (`FeedItem`) with unread badges
+- Empty state with CTA when no feeds added
+- Settings link + logout in footer
+
+**Refresh → navigate to unread:** `onRefreshComplete` is a callback prop defined in `reader/page.tsx`. After refresh completes, if the current URL has no filter (i.e. "all articles" or per-feed view), it navigates to `?filter=unread` (preserving `feedId` if present). Uses `feedIdRef` / `filterRef` to always read the latest URL values regardless of closure age.
 
 ### Settings page navigation
 
-`src/app/settings/page.tsx` has a "← Powrót" link at the top that navigates to `/reader`. It uses Next.js `<Link href="/reader">` with a left-arrow SVG icon.
+`src/app/settings/page.tsx` has a `ChevronLeft` + "Wstecz" link that navigates to `/reader`.
 
 ### Sidebar feed/folder management
 
@@ -92,11 +175,21 @@ Both components render via `createPortal` to `document.body`. Firestore function
 
 ### Article list search
 
-`ArticleList` (`src/components/layout/ArticleList.tsx`) has a magnifying-glass button in its header. Clicking it slides down a search input (CSS `max-h` transition). Filtering is client-side, title-only. State (`searchOpen`, `searchQuery`) is local to `ArticleList` and resets when `feedId` or `filter` prop changes.
+`ArticleList` (`src/components/layout/ArticleList.tsx`) has a `Search` (Lucide) button in its toolbar. Clicking slides down a search input (`max-height` CSS transition). Filtering is client-side, title-only. State (`searchOpen`, `searchQuery`) is local and resets when `feedId` or `filter` prop changes.
+
+Empty states: each filter has a dedicated empty state with icon + title + description. Loading state uses 6 skeleton cards (`.skeleton` shimmer) instead of a spinner.
+
+### Article card
+
+`src/components/articles/ArticleCard.tsx`:
+- 3px left blue border when selected
+- Title bold (`font-weight: 600`) when unread, gray (`--color-label-secondary`) when read
+- `BookmarkIcon` / `BookmarkCheck` appears on hover (opacity transition)
+- Relative time with minute precision (e.g. "4 min temu", "2 godz. temu", "wczoraj")
 
 ### Iframe mode — cookie consent blocking
 
-`/api/proxy/route.ts` injects a `<style>` + `<script>` block into every proxied HTML page. The CSS hides known cookie-consent overlays (OneTrust, CookieBot, CookieConsent, Complianz, Borlabs, etc.) immediately. The script adds a `MutationObserver` to catch popups injected asynchronously, and restores `body { overflow: auto }` which sites often lock when a modal is open.
+`/api/proxy/route.ts` injects a `<style>` + `<script>` block into every proxied HTML page. The CSS hides known cookie-consent overlays immediately. The script adds a `MutationObserver` to catch popups injected asynchronously, and restores `body { overflow: auto }`.
 
 ### State management pattern in `/reader`
 
@@ -105,6 +198,7 @@ Both components render via `createPortal` to `document.body`. Firestore function
 - `useArticles(userId, feedId)` — article list (lifted from ArticleList)
 - `useFeeds(userId)` — feeds + folders (lifted from Sidebar)
 - `activeColumn`, `sidebarCursorIndex` — keyboard navigation state
+- `feedIdRef`, `filterRef` — refs updated synchronously each render, used by `handleRefreshComplete` callback to always read the latest URL params
 
 Props flow down to `Sidebar`, `ArticleList`, `ArticleView`.
 
@@ -130,15 +224,24 @@ Implemented in `ReaderContent` via a `window` `keydown` listener (`handleKeyDown
 | `↑` / `↓` | article view | Scroll content by 120px |
 
 - Ignored when focus is in `input` or `textarea`
-- Active column shown with `ring-2 ring-inset ring-blue-500`
-- Highlighted sidebar item shown with `bg-blue-100 dark:bg-blue-900`
+- Active column shown with `ring-2 ring-inset` using `--color-accent`
+- Highlighted sidebar item shown with `rgba(0, 122, 255, 0.08)` background
 - `highlightedKey` string format: `"all"`, `"filter:unread"`, `"filter:bookmarks"`, `"folder:{id}"`, `"feed:{id}"`
 
 ### AI Integration
 
-`/api/ai/route.ts` accepts `{ action, content, provider, apiKey, model }`.  
-Actions: `summarize` | `translate` | `autotag` | `sentiment` | `chat`  
+`/api/ai/route.ts` accepts `{ action, content, provider, apiKey, model }`.
+Actions: `summarize` | `translate` | `autotag` | `sentiment` | `chat`
 The user's API key comes from their Firestore settings document and is forwarded to the provider — it must never be logged.
+
+`AIToolbar` (`src/components/ai/AIToolbar.tsx`) — frosted glass bar above article content. Only renders when `settings.aiApiKey` is set. Uses skeleton shimmer while loading result.
+
+### Settings components
+
+`src/components/settings/AppearanceSettings.tsx` exports shared primitives used by all settings sections:
+- `SettingsSection` — white card with iOS-style grouped layout
+- `SettingsRow` — label + right-side content row with separator
+- `Toggle` — iOS-style toggle switch (animated, green when on)
 
 ## Environment Variables
 
@@ -183,8 +286,10 @@ AI settings (provider + API key), summarize, translate to Polish, auto-tags, sen
 - ✅ Article list search: magnifying-glass icon slides out a title search field
 - ✅ Cookie consent blocking in iframe mode (injected via `/api/proxy`)
 - ✅ Manual feed refresh: ↺ button in sidebar header refreshes all feeds, preserves read/bookmark state
-- ✅ Settings page back button: "← Powrót" link navigates to `/reader`
+- ✅ Refresh → navigate to unread: after refresh completes in "all articles" or per-feed view, auto-navigates to `?filter=unread`
+- ✅ Settings page back button: ChevronLeft + "Wstecz" link navigates to `/reader`
 - ✅ Unread count badge: decrements when articles are marked as read, increments when new articles arrive via refresh
+- ✅ Apple HIG UI redesign: CSS variables, Lucide icons, frosted glass toolbars, skeleton loading, iOS-style settings, Apple Books reader mode
 - ⬜ R — mark as read, B — bookmark, O — open original URL
 - ⬜ Keyword alerts
 - ⬜ Reading stats/streak
