@@ -16,6 +16,8 @@ RSS Reader PWA installable on macOS and mobile. Users add RSS/Atom feeds, read a
 - **RSS parsing** — rss-parser (via API route, never direct from frontend due to CORS)
 - **Reader Mode** — @mozilla/readability + jsdom (via API route, same reason)
 
+TypeScript path alias: `@/` → `src/` (configured in `tsconfig.json`).
+
 ## Commands
 
 ```bash
@@ -113,9 +115,29 @@ Pobierz treść: BookOpen
 
 ## Architecture
 
+### `src/lib/` modules
+
+| File | Purpose |
+|------|---------|
+| `firebase.ts` | Exports lazy factory functions `db()` and `auth()` — they call `initializeApp` on first use via `getApps()` check, avoiding Next.js SSR double-init. Always call `db()` / `auth()` as functions, not as top-level constants. |
+| `firestore.ts` | All Firestore CRUD: subscribe/add/update/delete for feeds, folders, articles, settings, keywords; `saveArticlesForRefresh`, `markAsRead`. |
+| `rss.ts` | Wraps `rss-parser`; called from `/api/fetch-feed`. |
+| `readability.ts` | Wraps `@mozilla/readability` + `jsdom`; called from `/api/fetch-article`. |
+| `ai.ts` | Routes AI requests to Claude / OpenAI / Gemini based on `provider` field; called from `/api/ai`. |
+| `auth.ts` | Firebase Auth helpers (`loginUser`, `registerUser`, `logoutUser`). |
+
+### Hooks (`src/hooks/`)
+
+| Hook | Subscriptions | Returns |
+|------|--------------|---------|
+| `useAuth()` | Firebase Auth state | `{ user, loading }` |
+| `useFeeds(userId)` | Firestore feeds + folders | `{ feeds, folders, loading }` |
+| `useArticles(userId, feedId?)` | Firestore articles, client-sorts by `publishedAt` desc | `{ articles, loading }` |
+| `useSettings(userId)` | Firestore settings doc | `{ settings, loading }` |
+
 ### Key Constraints
 
-- **Firebase client-side only** — always guard with `typeof window !== 'undefined'` before initializing
+- **Firebase lazy init** — `db()` and `auth()` are factory functions (see `src/lib/firebase.ts`); they handle SSR safely via `getApps()`. Always call them as functions, never import a singleton.
 - **RSS and article fetching must go through Next.js API routes** — browsers block direct RSS/article fetches (CORS)
 - **All AI calls go through `/api/ai/route.ts`** — never call AI providers directly from frontend; user API keys must never appear in server logs
 - **`useSearchParams()` always requires `<Suspense>`** — Next.js 15 App Router rule. Pattern: export a wrapper component that renders `<Suspense><InnerContent /></Suspense>`, and put `useSearchParams()` inside `InnerContent`. See `src/app/reader/page.tsx` for the established pattern.
@@ -170,6 +192,10 @@ Child components receive these as props — **do not call `useSearchParams()` in
 - Settings link + logout in footer
 
 **Refresh → navigate to unread:** `onRefreshComplete` is a callback prop defined in `reader/page.tsx`. After refresh completes, if the current URL has no filter (i.e. "all articles" or per-feed view), it navigates to `?filter=unread` (preserving `feedId` if present). Uses `feedIdRef` / `filterRef` to always read the latest URL values regardless of closure age.
+
+### `/article/[id]/` route
+
+`src/app/article/[id]/page.tsx` — standalone article view (mobile PWA share target / direct link). Fetches the article document once from Firestore (no real-time subscription). Renders `ReaderMode` + `AIToolbar`. The route is protected by middleware.
 
 ### Settings page navigation
 
@@ -300,29 +326,9 @@ service cloud.firestore {
 }
 ```
 
-## Implementation Roadmap
+## Remaining work
 
-### Stage 1 — Foundation ✅
-Auth (register/login/protected routes), add RSS feeds, article list, mark as read (Firestore sync), Reader Mode, PWA manifest + service worker, offline support.
-
-### Stage 2 — Organization ✅
-Folders, tags, bookmarks, OPML import/export, filtering (all/unread/bookmarks/folder/tag).
-
-### Stage 3 — AI (BYOK) ✅
-AI settings (provider + API key), summarize, translate to Polish, auto-tags, sentiment, chat about article. All features gated on user having saved an API key.
-
-### Stage 4 — Extras (in progress)
-- ✅ Keyboard shortcuts: ↑↓ navigate articles, ←→ switch columns, ↑↓ in sidebar navigates filters/feeds
-- ✅ Feed/folder management: right-click context menu → rename (inline) / delete (with confirmation)
-- ✅ Article list search: magnifying-glass icon slides out a title search field
-- ✅ Cookie consent blocking in iframe mode (injected via `/api/proxy`)
-- ✅ Manual feed refresh: ↺ button in sidebar header refreshes all feeds, preserves read/bookmark state
-- ✅ Refresh → navigate to unread: after refresh completes in "all articles" or per-feed view, auto-navigates to `?filter=unread`
-- ✅ Settings page back button: ChevronLeft + "Wstecz" link navigates to `/reader`
-- ✅ Unread count badge: decrements when articles are marked as read, increments when new articles arrive via refresh
-- ✅ Apple HIG UI redesign: CSS variables, Lucide icons, frosted glass toolbars, skeleton loading, iOS-style settings, Apple Books reader mode
-- ✅ Unread filter sticky: articles stay in `?filter=unread` after being read; disappear only after manual refresh. 3-second timer triggers markAsRead (not on click).
-- ⬜ R — mark as read, B — bookmark, O — open original URL
+- ⬜ Keyboard shortcuts: R — mark as read, B — bookmark, O — open original URL
 - ⬜ Keyword alerts
 - ⬜ Reading stats/streak
 - ⬜ PDF export
