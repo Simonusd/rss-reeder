@@ -196,6 +196,7 @@ Empty states: each filter has a dedicated empty state with icon + title + descri
 - Title bold (`font-weight: 600`) when unread, gray (`--color-label-secondary`) when read
 - `BookmarkIcon` / `BookmarkCheck` appears on hover (opacity transition)
 - Relative time with minute precision (e.g. "4 min temu", "2 godz. temu", "wczoraj")
+- **Does NOT call `markAsRead` on click** — only navigates to the article. Marking as read is handled by a 3-second timer in `ReaderContent`.
 
 ### Iframe mode — cookie consent blocking
 
@@ -209,6 +210,9 @@ Empty states: each filter has a dedicated empty state with icon + title + descri
 - `useFeeds(userId)` — feeds + folders (lifted from Sidebar)
 - `activeColumn`, `sidebarCursorIndex` — keyboard navigation state
 - `feedIdRef`, `filterRef` — refs updated synchronously each render, used by `handleRefreshComplete` callback to always read the latest URL params
+- `locallyReadIds` — Set of article IDs marked as read in the current session; keeps them visible in `?filter=unread` until refresh. Reset when filter changes or refresh completes.
+
+**Marking as read — 3-second timer:** When `articleId` changes, a `setTimeout(3000)` fires and calls `markAsRead` if the article is still unread. Uses `articlesRef` (ref updated on every articles change) to read the latest article state at fire time. This replaces the old instant-on-click approach. The `locallyReadIds` set ensures the article stays visible in the unread filter even after `isRead` flips to `true` in Firestore.
 
 Props flow down to `Sidebar`, `ArticleList`, `ArticleView`.
 
@@ -317,6 +321,7 @@ AI settings (provider + API key), summarize, translate to Polish, auto-tags, sen
 - ✅ Settings page back button: ChevronLeft + "Wstecz" link navigates to `/reader`
 - ✅ Unread count badge: decrements when articles are marked as read, increments when new articles arrive via refresh
 - ✅ Apple HIG UI redesign: CSS variables, Lucide icons, frosted glass toolbars, skeleton loading, iOS-style settings, Apple Books reader mode
+- ✅ Unread filter sticky: articles stay in `?filter=unread` after being read; disappear only after manual refresh. 3-second timer triggers markAsRead (not on click).
 - ⬜ R — mark as read, B — bookmark, O — open original URL
 - ⬜ Keyword alerts
 - ⬜ Reading stats/streak

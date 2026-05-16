@@ -47,6 +47,7 @@ function ReaderContent() {
   const [activeColumn, setActiveColumn] = useState<ActiveColumn>("list");
   const [sidebarCursorIndex, setSidebarCursorIndex] = useState(0);
   const [iframeMode, setIframeMode] = useState(false);
+  const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const articleViewRef = useRef<HTMLElement>(null);
   const feedIdRef = useRef<string | null>(null);
@@ -69,6 +70,7 @@ function ReaderContent() {
   useEffect(() => { setIframeMode(false); }, [articleId]);
 
   const handleRefreshComplete = useCallback(() => {
+    setLocallyReadIds(new Set());
     if (!filterRef.current) {
       const params = new URLSearchParams();
       if (feedIdRef.current) params.set("feedId", feedIdRef.current);
@@ -80,15 +82,35 @@ function ReaderContent() {
   const { articles, loading: articlesLoading } = useArticles(user?.uid ?? null, feedId);
   const { feeds, folders } = useFeeds(user?.uid ?? null);
 
+  const articlesRef = useRef(articles);
+  useEffect(() => { articlesRef.current = articles; }, [articles]);
+
+  // Reset sticky unread set when navigating away from unread filter
+  useEffect(() => {
+    setLocallyReadIds(new Set());
+  }, [filter]);
+
+  // Mark as read after 3 seconds of viewing an article
+  useEffect(() => {
+    if (!articleId || !user) return;
+    const timer = setTimeout(() => {
+      const article = articlesRef.current.find(a => a.id === articleId);
+      if (!article || article.isRead) return;
+      markAsRead(user.uid, article.id, true, article.feedId);
+      setLocallyReadIds(prev => new Set([...prev, article.id]));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [articleId, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const filteredArticles = useMemo(
     () =>
       articles.filter((a) => {
-        if (filter === "unread") return !a.isRead;
+        if (filter === "unread") return !a.isRead || locallyReadIds.has(a.id);
         if (filter === "bookmarks") return a.isBookmarked;
         if (filter === "read") return a.isRead;
         return true;
       }),
-    [articles, filter]
+    [articles, filter, locallyReadIds]
   );
 
   const sidebarItems = useMemo<SidebarItem[]>(
@@ -221,7 +243,6 @@ function ReaderContent() {
           params.set("articleId", next.id);
           router.push(`/reader?${params.toString()}`);
 
-          if (!next.isRead && user) markAsRead(user.uid, next.id, true, next.feedId);
           cardRefs.current.get(next.id)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
       }

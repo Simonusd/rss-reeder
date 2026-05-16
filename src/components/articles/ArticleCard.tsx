@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookmarkIcon, BookmarkCheck } from "lucide-react";
-import { markAsRead, toggleBookmark } from "@/lib/firestore";
+import { toggleBookmark } from "@/lib/firestore";
 import type { Article } from "@/types";
 
 interface Props {
@@ -41,9 +41,6 @@ export default function ArticleCard({
     if (filter) params.set("filter", filter);
     params.set("articleId", article.id);
     router.push(`/reader?${params.toString()}`);
-    if (!article.isRead) {
-      markAsRead(userId, article.id, true, article.feedId);
-    }
   }
 
   async function handleBookmark(e: React.MouseEvent) {
