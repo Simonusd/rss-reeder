@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Search } from "lucide-react";
 import ArticleCard from "@/components/articles/ArticleCard";
 import type { Article } from "@/types";
 
@@ -16,16 +17,28 @@ interface Props {
   setCardRef: (id: string, node: HTMLElement | null) => void;
 }
 
+function SkeletonCard() {
+  return (
+    <div style={{ padding: "16px", borderBottom: "1px solid var(--color-separator)" }}>
+      <div className="skeleton" style={{ height: 12, width: "50%", marginBottom: 10 }} />
+      <div className="skeleton" style={{ height: 16, width: "90%", marginBottom: 6 }} />
+      <div className="skeleton" style={{ height: 16, width: "75%", marginBottom: 10 }} />
+      <div className="skeleton" style={{ height: 12, width: "60%" }} />
+    </div>
+  );
+}
+
+function filterTitle(filter: string | null, feedId: string | null): string {
+  if (feedId) return "Artykuły";
+  if (filter === "unread") return "Nieprzeczytane";
+  if (filter === "bookmarks") return "Zakładki";
+  if (filter === "read") return "Przeczytane";
+  return "Wszystkie";
+}
+
 export default function ArticleList({
-  userId,
-  feedId,
-  filter,
-  articleId,
-  isActive,
-  onActivate,
-  filteredArticles,
-  loading,
-  setCardRef,
+  userId, feedId, filter, articleId, isActive, onActivate,
+  filteredArticles, loading, setCardRef,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -41,33 +54,63 @@ export default function ArticleList({
       )
     : filteredArticles;
 
+  const isEmpty = !loading && displayed.length === 0;
+
   return (
     <div
       onClick={onActivate}
-      className={`w-80 h-full border-r overflow-y-auto bg-white dark:bg-gray-950 shrink-0 transition-shadow ${
-        isActive ? "ring-2 ring-inset ring-blue-500" : ""
+      className={`h-full flex flex-col shrink-0 transition-shadow ${
+        isActive ? "ring-2 ring-inset" : ""
       }`}
+      style={{
+        width: 380,
+        background: "var(--color-bg-primary)",
+        borderRight: "1px solid var(--color-separator)",
+        ...(isActive ? { "--tw-ring-color": "var(--color-accent)" } as React.CSSProperties : {}),
+      }}
     >
-      <div className="px-4 pt-4 pb-3 border-b sticky top-0 bg-white dark:bg-gray-950 z-10">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-sm text-gray-500">
-            {displayed.length} artykułów
-          </h2>
-          <button
-            onClick={(e) => { e.stopPropagation(); setSearchOpen((v) => !v); }}
-            className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-              searchOpen ? "text-blue-500" : "text-gray-400"
-            }`}
-            title="Szukaj"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </button>
-        </div>
+      {/* Toolbar */}
+      <div className="toolbar" style={{ gap: 8 }}>
+        <h2
+          className="text-headline flex-1"
+          style={{ color: "var(--color-label)" }}
+        >
+          {filterTitle(filter, feedId)}
+          {!loading && (
+            <span
+              className="text-footnote ml-2"
+              style={{ color: "var(--color-label-tertiary)", fontWeight: 400 }}
+            >
+              {displayed.length}
+            </span>
+          )}
+        </h2>
+        <button
+          onClick={(e) => { e.stopPropagation(); setSearchOpen(v => !v); }}
+          className="flex items-center justify-center rounded-lg transition-colors duration-150"
+          style={{
+            width: 32, height: 32,
+            color: searchOpen ? "var(--color-accent)" : "var(--color-label-secondary)",
+            background: searchOpen ? "rgba(0,122,255,0.08)" : "transparent",
+          }}
+          title="Szukaj"
+          onMouseEnter={e => { if (!searchOpen) e.currentTarget.style.background = "rgba(0,0,0,0.06)"; }}
+          onMouseLeave={e => { if (!searchOpen) e.currentTarget.style.background = "transparent"; }}
+        >
+          <Search size={16} />
+        </button>
+      </div>
 
-        <div className={`overflow-hidden transition-all duration-200 ${searchOpen ? "max-h-10 mt-2" : "max-h-0"}`}>
+      {/* Search bar */}
+      <div
+        style={{
+          overflow: "hidden",
+          maxHeight: searchOpen ? 56 : 0,
+          transition: "max-height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+          borderBottom: searchOpen ? "1px solid var(--color-separator)" : "none",
+        }}
+      >
+        <div style={{ padding: "8px 16px" }}>
           <input
             autoFocus={searchOpen}
             value={searchQuery}
@@ -76,33 +119,61 @@ export default function ArticleList({
               if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); }
             }}
             onClick={(e) => e.stopPropagation()}
-            placeholder="Szukaj w tytułach..."
-            className="w-full text-sm px-2 py-1 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none focus:border-blue-400"
+            placeholder="Szukaj w tytułach…"
+            className="input"
+            style={{ height: 36, fontSize: 15 }}
           />
         </div>
       </div>
 
-      {loading ? (
-        <div className="p-4 text-center text-gray-400 text-sm">Ładowanie...</div>
-      ) : displayed.length === 0 ? (
-        <div className="p-8 text-center text-gray-400 text-sm">
-          {searchQuery.trim() ? "Brak wyników wyszukiwania" : "Brak artykułów"}
-        </div>
-      ) : (
-        <ul>
-          {displayed.map((article) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              userId={userId}
-              feedId={feedId}
-              filter={filter}
-              isSelected={article.id === articleId}
-              setCardRef={setCardRef}
-            />
-          ))}
-        </ul>
-      )}
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        {loading ? (
+          <>
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+          </>
+        ) : isEmpty ? (
+          <EmptyState filter={filter} />
+        ) : (
+          <ul>
+            {displayed.map((article) => (
+              <ArticleCard
+                key={article.id}
+                article={article}
+                userId={userId}
+                feedId={feedId}
+                filter={filter}
+                isSelected={article.id === articleId}
+                setCardRef={setCardRef}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ filter }: { filter: string | null }) {
+  const icon = filter === "bookmarks" ? "🔖" : filter === "read" ? "✓" : "📭";
+  const title =
+    filter === "unread" ? "Wszystko przeczytane" :
+    filter === "bookmarks" ? "Brak zakładek" :
+    filter === "read" ? "Brak przeczytanych" :
+    "Brak artykułów";
+  const desc =
+    filter === "unread" ? "Świetna robota — nadążasz za newsami." :
+    filter === "bookmarks" ? "Zapisuj artykuły klikając ikonę zakładki." :
+    "Odśwież feedy żeby pobrać nowe artykuły.";
+
+  return (
+    <div
+      className="flex flex-col items-center justify-center h-full px-8 text-center"
+      style={{ minHeight: 300 }}
+    >
+      <span style={{ fontSize: 48, marginBottom: 16, display: "block" }}>{icon}</span>
+      <p className="text-title3 mb-2" style={{ color: "var(--color-label)" }}>{title}</p>
+      <p className="text-subheadline" style={{ color: "var(--color-label-secondary)" }}>{desc}</p>
     </div>
   );
 }

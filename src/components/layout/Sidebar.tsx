@@ -3,6 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  RefreshCw, Plus, Settings, Newspaper,
+  BookmarkIcon, CheckCircle2, Rss,
+} from "lucide-react";
 import FolderItem from "@/components/feeds/FolderItem";
 import FeedItem from "@/components/feeds/FeedItem";
 import AddFeedModal from "@/components/feeds/AddFeedModal";
@@ -20,13 +24,17 @@ interface Props {
   onRefreshComplete: () => void;
 }
 
-const HL = "bg-blue-100 dark:bg-blue-900";
-const BASE_LINK = "flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm";
+const NAV_ITEM =
+  "flex items-center gap-2.5 px-3 rounded-lg h-9 text-sm transition-colors duration-150 w-full";
 
-export default function Sidebar({ userId, feeds, folders, isActive, onActivate, highlightedKey, onRefreshComplete }: Props) {
+export default function Sidebar({
+  userId, feeds, folders, isActive, onActivate, highlightedKey, onRefreshComplete,
+}: Props) {
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+
+  const totalUnread = feeds.reduce((s, f) => s + (f.unreadCount ?? 0), 0);
 
   async function handleRefresh(e: React.MouseEvent) {
     e.stopPropagation();
@@ -39,9 +47,7 @@ export default function Sidebar({ userId, feeds, folders, isActive, onActivate, 
           if (!res.ok) return;
           const data = await res.json();
           await saveArticlesForRefresh(userId, feed.id, data.articles);
-        } catch {
-          // ignoruj błąd pojedynczego feedu
-        }
+        } catch { /* ignoruj błąd pojedynczego feedu */ }
       }));
     } finally {
       setRefreshing(false);
@@ -60,106 +66,230 @@ export default function Sidebar({ userId, feeds, folders, isActive, onActivate, 
   return (
     <aside
       onClick={onActivate}
-      className={`w-64 h-full border-r flex flex-col bg-gray-50 dark:bg-gray-900 shrink-0 transition-shadow ${
-        isActive ? "ring-2 ring-inset ring-blue-500" : ""
+      className={`h-full flex flex-col shrink-0 transition-shadow ${
+        isActive ? "ring-2 ring-inset" : ""
       }`}
+      style={{
+        width: 260,
+        background: "var(--color-bg-secondary)",
+        borderRight: "1px solid var(--color-separator)",
+        ...(isActive ? { "--tw-ring-color": "var(--color-accent)" } as React.CSSProperties : {}),
+      }}
     >
-      <div className="p-4 border-b flex items-center justify-between">
-        <span className="font-bold text-lg">RSS Reader</span>
-        <div className="flex items-center gap-2">
+      {/* Toolbar */}
+      <div className="toolbar" style={{ justifyContent: "space-between" }}>
+        <span className="text-headline" style={{ color: "var(--color-label)" }}>
+          RSS Reader
+        </span>
+        <div className="flex items-center gap-1">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="text-gray-500 hover:text-blue-600 disabled:opacity-50"
+            className="flex items-center justify-center rounded-lg transition-colors duration-150"
+            style={{
+              width: 32, height: 32,
+              color: "var(--color-label-secondary)",
+            }}
             title="Odśwież feedy"
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-            >
-              <path d="M23 4v6h-6" />
-              <path d="M1 20v-6h6" />
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            </svg>
+            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setShowAddFeed(true); }}
-            className="text-blue-600 hover:text-blue-800 text-xl font-bold"
+            className="flex items-center justify-center rounded-lg transition-colors duration-150"
+            style={{ width: 32, height: 32, color: "var(--color-accent)" }}
             title="Dodaj feed"
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,122,255,0.08)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
-            +
+            <Plus size={16} />
           </button>
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-2 space-y-1">
-        <Link
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
+        {/* Główne filtry */}
+        <NavLink
           href="/reader"
-          className={`${BASE_LINK} ${highlightedKey === "all" ? HL : ""}`}
+          isActive={!highlightedKey && highlightedKey !== null ? false : highlightedKey === "all"}
         >
-          Wszystkie artykuły
-        </Link>
-        <Link
+          <Newspaper size={16} />
+          <span className="flex-1">Wszystkie artykuły</span>
+        </NavLink>
+
+        <NavLink
           href="/reader?filter=unread"
-          className={`${BASE_LINK} ${highlightedKey === "filter:unread" ? HL : ""}`}
+          isActive={highlightedKey === "filter:unread"}
         >
-          Nieprzeczytane
-        </Link>
-        <Link
+          <span
+            className="flex items-center justify-center rounded-full shrink-0"
+            style={{ width: 16, height: 16, background: "var(--color-accent)" }}
+          />
+          <span className="flex-1">Nieprzeczytane</span>
+          {totalUnread > 0 && <span className="badge">{totalUnread}</span>}
+        </NavLink>
+
+        <NavLink
           href="/reader?filter=bookmarks"
-          className={`${BASE_LINK} ${highlightedKey === "filter:bookmarks" ? HL : ""}`}
+          isActive={highlightedKey === "filter:bookmarks"}
         >
-          Zakładki
-        </Link>
-        <Link
+          <BookmarkIcon size={16} />
+          <span className="flex-1">Zakładki</span>
+        </NavLink>
+
+        <NavLink
           href="/reader?filter=read"
-          className={`${BASE_LINK} ${highlightedKey === "filter:read" ? HL : ""}`}
+          isActive={highlightedKey === "filter:read"}
         >
-          Przeczytane
-        </Link>
+          <CheckCircle2 size={16} />
+          <span className="flex-1">Przeczytane</span>
+        </NavLink>
 
-        {folders.map((folder) => (
-          <FolderItem
-            key={folder.id}
-            folder={folder}
-            feeds={feeds.filter((f) => f.folderId === folder.id)}
-            userId={userId}
-            highlightedKey={highlightedKey}
-          />
-        ))}
+        {/* Separator */}
+        <div
+          className="mx-3 my-2"
+          style={{ height: 1, background: "var(--color-separator)" }}
+        />
 
-        {unassignedFeeds.map((feed) => (
-          <FeedItem
-            key={feed.id}
-            feed={feed}
-            userId={userId}
-            highlighted={highlightedKey === `feed:${feed.id}`}
-          />
-        ))}
+        {/* Foldery */}
+        {folders.length > 0 && (
+          <>
+            <p
+              className="text-caption px-3 pb-1 pt-1 uppercase tracking-wide"
+              style={{ color: "var(--color-label-tertiary)" }}
+            >
+              Foldery
+            </p>
+            {folders.map((folder) => (
+              <FolderItem
+                key={folder.id}
+                folder={folder}
+                feeds={feeds.filter((f) => f.folderId === folder.id)}
+                userId={userId}
+                highlightedKey={highlightedKey}
+              />
+            ))}
+          </>
+        )}
+
+        {/* Nieprzypisane feedy */}
+        {unassignedFeeds.length > 0 && (
+          <>
+            {folders.length > 0 && (
+              <p
+                className="text-caption px-3 pb-1 pt-2 uppercase tracking-wide"
+                style={{ color: "var(--color-label-tertiary)" }}
+              >
+                Feedy
+              </p>
+            )}
+            {folders.length === 0 && (
+              <p
+                className="text-caption px-3 pb-1 pt-1 uppercase tracking-wide"
+                style={{ color: "var(--color-label-tertiary)" }}
+              >
+                Feedy
+              </p>
+            )}
+            {unassignedFeeds.map((feed) => (
+              <FeedItem
+                key={feed.id}
+                feed={feed}
+                userId={userId}
+                highlighted={highlightedKey === `feed:${feed.id}`}
+              />
+            ))}
+          </>
+        )}
+
+        {/* Empty state */}
+        {feeds.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <Rss
+              size={48}
+              className="mb-4"
+              style={{ color: "var(--color-label-quaternary)" }}
+            />
+            <p className="text-headline mb-1" style={{ color: "var(--color-label)" }}>
+              Brak feedów
+            </p>
+            <p
+              className="text-subheadline mb-5"
+              style={{ color: "var(--color-label-secondary)" }}
+            >
+              Dodaj pierwszy feed RSS żeby zacząć czytać
+            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowAddFeed(true); }}
+              className="btn-primary"
+              style={{ height: 44, fontSize: 15 }}
+            >
+              + Dodaj feed
+            </button>
+          </div>
+        )}
       </nav>
 
-      <div className="p-2 border-t flex gap-2">
+      {/* Footer */}
+      <div
+        className="p-2 flex items-center justify-between"
+        style={{ borderTop: "1px solid var(--color-separator)" }}
+      >
         <Link
           href="/settings"
-          className="flex-1 text-center text-sm px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800"
+          className="flex items-center gap-2 px-3 h-9 rounded-lg text-sm transition-colors duration-150"
+          style={{ color: "var(--color-label-secondary)" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
-          Ustawienia
+          <Settings size={16} />
+          <span>Ustawienia</span>
         </Link>
         <button
           onClick={handleLogout}
-          className="flex-1 text-center text-sm px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-red-600"
+          className="px-3 h-9 rounded-lg text-sm transition-colors duration-150"
+          style={{ color: "var(--color-accent-red)" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,59,48,0.08)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
           Wyloguj
         </button>
       </div>
 
-      {showAddFeed && <AddFeedModal userId={userId} onClose={() => setShowAddFeed(false)} />}
+      {showAddFeed && (
+        <AddFeedModal userId={userId} onClose={() => setShowAddFeed(false)} />
+      )}
     </aside>
+  );
+}
+
+function NavLink({
+  href, isActive, children,
+}: {
+  href: string;
+  isActive: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={NAV_ITEM}
+      style={{
+        color: isActive ? "var(--color-accent)" : "var(--color-label)",
+        background: isActive ? "rgba(0, 122, 255, 0.08)" : "transparent",
+        fontWeight: isActive ? 600 : 400,
+      }}
+      onMouseEnter={e => {
+        if (!isActive) e.currentTarget.style.background = "rgba(0,0,0,0.04)";
+      }}
+      onMouseLeave={e => {
+        if (!isActive) e.currentTarget.style.background = "transparent";
+      }}
+    >
+      {children}
+    </Link>
   );
 }

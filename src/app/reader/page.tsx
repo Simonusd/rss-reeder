@@ -247,12 +247,19 @@ function ReaderContent() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">Ładowanie...</div>
+      <div
+        style={{
+          minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+          background: "var(--color-bg-secondary)",
+        }}
+      >
+        <div className="skeleton" style={{ width: 120, height: 20, borderRadius: 10 }} />
+      </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--color-bg-primary)" }}>
       <Sidebar
         userId={user.uid}
         feeds={feeds}

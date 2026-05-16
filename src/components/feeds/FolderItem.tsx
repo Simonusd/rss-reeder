@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { Feed, Folder } from "@/types";
+import { ChevronRight, Folder } from "lucide-react";
+import type { Feed, Folder as FolderType } from "@/types";
 import FeedItem from "./FeedItem";
 import ContextMenu from "@/components/ui/ContextMenu";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { deleteFolder, updateFolder, updateFeed } from "@/lib/firestore";
 
 interface Props {
-  folder: Folder;
+  folder: FolderType;
   feeds: Feed[];
   userId: string;
   highlightedKey: string | null;
@@ -35,6 +36,7 @@ export default function FolderItem({ folder, feeds, userId, highlightedKey }: Pr
   }, [folder.name, renaming]);
 
   const folderHighlighted = highlightedKey === `folder:${folder.id}`;
+  const folderUnread = feeds.reduce((s, f) => s + (f.unreadCount ?? 0), 0);
 
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault();
@@ -62,29 +64,69 @@ export default function FolderItem({ folder, feeds, userId, highlightedKey }: Pr
     ]);
   }
 
-  const buttonClass = `w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-sm font-medium ${
-    folderHighlighted ? "bg-blue-100 dark:bg-blue-900" : ""
-  }`;
+  const rowStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "0 12px",
+    height: 36,
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 600,
+    color: folderHighlighted ? "var(--color-accent)" : "var(--color-label-secondary)",
+    background: folderHighlighted ? "rgba(0, 122, 255, 0.08)" : "transparent",
+    cursor: "pointer",
+    width: "100%",
+    border: "none",
+    textAlign: "left",
+    transition: "background 0.15s",
+  };
 
   return (
     <div>
       <div onContextMenu={handleContextMenu} className="relative">
         {renaming ? (
-          <div className={buttonClass}>
-            <span>{open ? "▾" : "▸"}</span>
+          <div style={rowStyle}>
+            <Folder size={14} style={{ flexShrink: 0 }} />
             <input
               ref={inputRef}
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={handleRenameKeyDown}
               onBlur={handleRenameCommit}
-              className="flex-1 bg-transparent outline-none border-b border-blue-500 font-medium min-w-0"
+              style={{
+                flex: 1, background: "transparent", outline: "none",
+                borderBottom: "1.5px solid var(--color-accent)",
+                minWidth: 0, color: "var(--color-label)", fontSize: 14, fontWeight: 600,
+              }}
             />
           </div>
         ) : (
-          <button onClick={() => setOpen(!open)} className={buttonClass}>
-            <span>{open ? "▾" : "▸"}</span>
-            <span className="truncate">{folder.name}</span>
+          <button
+            onClick={() => setOpen(!open)}
+            style={rowStyle}
+            onMouseEnter={e => {
+              if (!folderHighlighted) e.currentTarget.style.background = "rgba(0,0,0,0.04)";
+            }}
+            onMouseLeave={e => {
+              if (!folderHighlighted) e.currentTarget.style.background = "transparent";
+            }}
+          >
+            <ChevronRight
+              size={14}
+              style={{
+                flexShrink: 0,
+                transform: open ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+              }}
+            />
+            <Folder size={14} style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {folder.name}
+            </span>
+            {folderUnread > 0 && (
+              <span className="badge" style={{ flexShrink: 0 }}>{folderUnread}</span>
+            )}
           </button>
         )}
 
@@ -95,14 +137,14 @@ export default function FolderItem({ folder, feeds, userId, highlightedKey }: Pr
             onClose={() => setMenuPos(null)}
             items={[
               { label: "Zmień nazwę", onClick: () => setRenaming(true) },
-              { label: "Usuń", onClick: () => setConfirmDelete(true), danger: true },
+              { label: "Usuń folder", onClick: () => setConfirmDelete(true), danger: true },
             ]}
           />
         )}
 
         {confirmDelete && (
           <ConfirmDialog
-            message={`Usunąć folder „${folder.name}"? Feedy z niego staną się nieprzypisane.`}
+            message={`Usunąć folder „${folder.name}"? Feedy staną się nieprzypisane.`}
             onConfirm={() => { setConfirmDelete(false); handleDelete(); }}
             onCancel={() => setConfirmDelete(false)}
           />
@@ -110,7 +152,7 @@ export default function FolderItem({ folder, feeds, userId, highlightedKey }: Pr
       </div>
 
       {open && (
-        <div className="pl-4">
+        <div style={{ paddingLeft: 12 }}>
           {feeds.map((feed) => (
             <FeedItem
               key={feed.id}

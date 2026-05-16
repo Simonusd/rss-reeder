@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { ChevronLeft, ExternalLink } from "lucide-react";
 import type { Article } from "@/types";
 import ReaderMode from "@/components/articles/ReaderMode";
 import AIToolbar from "@/components/ai/AIToolbar";
@@ -17,20 +18,21 @@ interface Props {
   onIframeClose: () => void;
 }
 
-export default function ArticleView({ userId, articleId, isActive, onActivate, viewRef, iframeMode, onIframeClose }: Props) {
+export default function ArticleView({
+  userId, articleId, isActive, onActivate, viewRef, iframeMode, onIframeClose,
+}: Props) {
   const [article, setArticle] = useState<Article | null>(null);
 
   useEffect(() => {
-    if (!articleId) {
-      setArticle(null);
-      return;
-    }
+    if (!articleId) { setArticle(null); return; }
     getDoc(doc(db(), "users", userId, "articles", articleId)).then((snap) => {
       if (snap.exists()) setArticle({ id: snap.id, ...snap.data() } as Article);
     });
   }, [articleId, userId]);
 
-  const ringClass = isActive ? "ring-2 ring-inset ring-blue-500" : "";
+  const ringStyle: React.CSSProperties = isActive
+    ? { outline: "2px solid var(--color-accent)", outlineOffset: "-2px" }
+    : {};
 
   if (!article) {
     return (
@@ -38,9 +40,26 @@ export default function ArticleView({ userId, articleId, isActive, onActivate, v
         ref={viewRef}
         onClick={onActivate}
         tabIndex={-1}
-        className={`flex-1 flex items-center justify-center text-gray-400 text-sm outline-none transition-shadow ${ringClass}`}
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--color-bg-primary)",
+          outline: "none",
+          ...ringStyle,
+        }}
       >
-        Wybierz artykuł z listy
+        <div className="text-center px-8">
+          <p style={{ fontSize: 48, marginBottom: 16 }}>📖</p>
+          <p className="text-title3 mb-2" style={{ color: "var(--color-label)" }}>
+            Wybierz artykuł
+          </p>
+          <p className="text-subheadline" style={{ color: "var(--color-label-secondary)" }}>
+            Kliknij artykuł z listy, żeby go przeczytać
+          </p>
+        </div>
       </main>
     );
   }
@@ -50,27 +69,54 @@ export default function ArticleView({ userId, articleId, isActive, onActivate, v
       ref={viewRef}
       onClick={onActivate}
       tabIndex={-1}
-      className={`flex-1 outline-none transition-shadow ${iframeMode ? "overflow-hidden" : "overflow-y-auto"} ${ringClass}`}
+      style={{
+        flex: 1,
+        outline: "none",
+        background: "var(--color-bg-primary)",
+        overflow: iframeMode ? "hidden" : "auto",
+        display: "flex",
+        flexDirection: "column",
+        ...ringStyle,
+      }}
     >
       {iframeMode ? (
-        <div className="relative w-full h-full flex flex-col">
-          <div className="flex items-center gap-2 px-3 py-2 border-b bg-gray-50 dark:bg-gray-900 text-xs text-gray-500 shrink-0">
+        <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+          {/* Iframe toolbar */}
+          <div
+            className="toolbar"
+            style={{ gap: 12, justifyContent: "space-between", flexShrink: 0 }}
+          >
             <button
               onClick={onIframeClose}
-              className="flex items-center gap-1 hover:text-gray-800 dark:hover:text-gray-200"
+              className="flex items-center gap-1.5 text-sm"
+              style={{ color: "var(--color-accent)" }}
             >
-              ← Wróć do readera
+              <ChevronLeft size={16} />
+              Wróć do readera
             </button>
-            <span className="truncate">{article.url}</span>
+            <span
+              className="text-footnote truncate flex-1 text-right"
+              style={{ color: "var(--color-label-secondary)" }}
+            >
+              {article.url}
+            </span>
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--color-label-secondary)", flexShrink: 0 }}
+            >
+              <ExternalLink size={14} />
+            </a>
           </div>
           <iframe
             src={`/api/proxy?url=${encodeURIComponent(article.url)}`}
-            className="w-full flex-1 border-0"
+            style={{ width: "100%", flex: 1, border: "none" }}
             title={article.title}
           />
         </div>
       ) : (
-        <div className="max-w-3xl mx-auto px-6 py-8">
+        <div style={{ maxWidth: 760, margin: "0 auto", width: "100%", padding: "0 0 80px" }}>
           <AIToolbar article={article} userId={userId} />
           <ReaderMode article={article} />
         </div>

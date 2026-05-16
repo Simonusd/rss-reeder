@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X, Rss } from "lucide-react";
 import { addFeed, saveArticles } from "@/lib/firestore";
 import type { Article } from "@/types";
 
@@ -37,7 +38,6 @@ export default function AddFeedModal({ userId, onClose }: Props) {
 
       const articles = (data.articles as Omit<Article, "id">[]).map((a) => ({ ...a, feedId }));
       await saveArticles(userId, articles);
-
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Błąd podczas dodawania feedu");
@@ -47,36 +47,94 @@ export default function AddFeedModal({ userId, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-6 w-full max-w-md shadow-xl">
-        <h2 className="text-lg font-semibold mb-4">Dodaj feed RSS</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">URL feedu</label>
+    <div
+      className="modal-overlay fixed inset-0 z-50 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="modal modal-enter"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: 12 }}>
+          <div
+            style={{
+              width: 40, height: 40, borderRadius: "var(--radius-md)",
+              background: "rgba(0,122,255,0.1)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Rss size={20} style={{ color: "var(--color-accent)" }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h2 className="text-headline" style={{ color: "var(--color-label)" }}>
+              Dodaj feed RSS
+            </h2>
+            <p className="text-footnote" style={{ color: "var(--color-label-secondary)" }}>
+              Wklej URL feedu RSS lub Atom
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 32, height: 32, borderRadius: "var(--radius-full)",
+              background: "var(--color-bg-secondary)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              border: "none", cursor: "pointer",
+              color: "var(--color-label-secondary)",
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label
+              className="text-footnote"
+              style={{
+                display: "block", marginBottom: 6,
+                color: "var(--color-label-secondary)", fontWeight: 500,
+              }}
+            >
+              URL feedu
+            </label>
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com/rss"
+              placeholder="https://example.com/feed.rss"
               required
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input"
             />
           </div>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <div className="flex gap-3 justify-end">
+
+          {error && (
+            <p
+              className="text-footnote mb-4"
+              style={{ color: "var(--color-accent-red)" }}
+            >
+              {error}
+            </p>
+          )}
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="btn-secondary"
+              style={{ height: 44 }}
             >
               Anuluj
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="btn-primary"
+              style={{ height: 44, minWidth: 100 }}
             >
-              {loading ? "Dodawanie..." : "Dodaj"}
+              {loading ? "Dodawanie…" : "Dodaj feed"}
             </button>
           </div>
         </form>

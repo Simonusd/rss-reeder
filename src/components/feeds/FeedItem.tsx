@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { Rss } from "lucide-react";
 import type { Feed } from "@/types";
 import ContextMenu from "@/components/ui/ContextMenu";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -24,7 +25,6 @@ export default function FeedItem({ feed, userId, highlighted }: Props) {
     if (renaming) inputRef.current?.select();
   }, [renaming]);
 
-  // Keep renameValue in sync when feed title changes externally
   useEffect(() => {
     if (!renaming) setRenameValue(feed.title);
   }, [feed.title, renaming]);
@@ -52,33 +52,77 @@ export default function FeedItem({ feed, userId, highlighted }: Props) {
     await deleteFeed(userId, feed.id);
   }
 
-  const baseClass = `flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-    highlighted ? "bg-blue-100 dark:bg-blue-900" : ""
-  }`;
+  const itemStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "0 12px",
+    height: 36,
+    borderRadius: 8,
+    fontSize: 14,
+    color: highlighted ? "var(--color-accent)" : "var(--color-label)",
+    background: highlighted ? "rgba(0, 122, 255, 0.08)" : "transparent",
+    fontWeight: highlighted ? 600 : 400,
+    transition: "background 0.15s, color 0.15s",
+    textDecoration: "none",
+    width: "100%",
+  };
 
   return (
     <div onContextMenu={handleContextMenu} className="relative">
       {renaming ? (
-        <div className={`${baseClass} hover:bg-gray-200 dark:hover:bg-gray-800`}>
-          {feed.favicon && <img src={feed.favicon} alt="" className="w-4 h-4 rounded shrink-0" />}
+        <div style={itemStyle}>
+          {feed.favicon ? (
+            <img
+              src={feed.favicon}
+              alt=""
+              style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0 }}
+            />
+          ) : (
+            <Rss size={14} style={{ flexShrink: 0, color: "var(--color-label-tertiary)" }} />
+          )}
           <input
             ref={inputRef}
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
             onKeyDown={handleRenameKeyDown}
             onBlur={handleRenameCommit}
-            className="flex-1 bg-transparent outline-none border-b border-blue-500 min-w-0"
+            style={{
+              flex: 1,
+              background: "transparent",
+              outline: "none",
+              borderBottom: "1.5px solid var(--color-accent)",
+              minWidth: 0,
+              color: "var(--color-label)",
+              fontSize: 14,
+            }}
           />
         </div>
       ) : (
         <Link
           href={`/reader?feedId=${feed.id}`}
-          className={`${baseClass} hover:bg-gray-200 dark:hover:bg-gray-800`}
+          style={itemStyle}
+          onMouseEnter={e => {
+            if (!highlighted) e.currentTarget.style.background = "rgba(0,0,0,0.04)";
+          }}
+          onMouseLeave={e => {
+            if (!highlighted) e.currentTarget.style.background = "transparent";
+          }}
         >
-          {feed.favicon && <img src={feed.favicon} alt="" className="w-4 h-4 rounded shrink-0" />}
-          <span className="truncate flex-1">{feed.title}</span>
-          {feed.unreadCount > 0 && (
-            <span className="text-xs bg-blue-600 text-white rounded-full px-1.5 py-0.5 shrink-0">
+          {feed.favicon ? (
+            <img
+              src={feed.favicon}
+              alt=""
+              style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0 }}
+            />
+          ) : (
+            <Rss size={14} style={{ flexShrink: 0, color: "var(--color-label-tertiary)" }} />
+          )}
+          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {feed.title}
+          </span>
+          {(feed.unreadCount ?? 0) > 0 && (
+            <span className="badge" style={{ flexShrink: 0 }}>
               {feed.unreadCount}
             </span>
           )}
@@ -92,7 +136,7 @@ export default function FeedItem({ feed, userId, highlighted }: Props) {
           onClose={() => setMenuPos(null)}
           items={[
             { label: "Zmień nazwę", onClick: () => setRenaming(true) },
-            { label: "Usuń", onClick: () => setConfirmDelete(true), danger: true },
+            { label: "Usuń feed", onClick: () => setConfirmDelete(true), danger: true },
           ]}
         />
       )}

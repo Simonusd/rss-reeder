@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { markAsRead } from "@/lib/firestore";
+import { BookmarkIcon, BookmarkCheck } from "lucide-react";
+import { markAsRead, toggleBookmark } from "@/lib/firestore";
 import type { Article } from "@/types";
 
 interface Props {
@@ -13,18 +15,25 @@ interface Props {
   setCardRef: (id: string, node: HTMLElement | null) => void;
 }
 
-function formatDate(date: Date): string {
-  const now = new Date();
+function formatDate(date: Date | { seconds: number }): string {
   const d = date instanceof Date ? date : new Date((date as { seconds: number }).seconds * 1000);
+  const now = new Date();
   const diff = now.getTime() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return "dziś";
+  if (mins < 60) return `${mins} min temu`;
+  if (hours < 24) return `${hours} godz. temu`;
   if (days === 1) return "wczoraj";
-  return `${days} dni temu`;
+  if (days < 7) return `${days} dni temu`;
+  return d.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
 }
 
-export default function ArticleCard({ article, userId, feedId, filter, isSelected, setCardRef }: Props) {
+export default function ArticleCard({
+  article, userId, feedId, filter, isSelected, setCardRef,
+}: Props) {
   const router = useRouter();
+  const [hovered, setHovered] = useState(false);
 
   function handleClick() {
     const params = new URLSearchParams();
@@ -37,18 +46,95 @@ export default function ArticleCard({ article, userId, feedId, filter, isSelecte
     }
   }
 
+  async function handleBookmark(e: React.MouseEvent) {
+    e.stopPropagation();
+    await toggleBookmark(userId, article.id, !article.isBookmarked);
+  }
+
   return (
-    <li ref={(node) => setCardRef(article.id, node)}>
+    <li
+      ref={(node) => setCardRef(article.id, node)}
+      style={{ position: "relative" }}
+    >
       <button
         onClick={handleClick}
-        className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors ${
-          isSelected ? "bg-blue-50 dark:bg-blue-950 border-l-2 border-l-blue-600" : ""
-        } ${!article.isRead ? "font-semibold" : "text-gray-500"}`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          width: "100%",
+          textAlign: "left",
+          padding: "14px 16px 14px 20px",
+          borderBottom: "1px solid var(--color-separator)",
+          background: isSelected
+            ? "rgba(0, 122, 255, 0.06)"
+            : hovered
+            ? "rgba(0,0,0,0.02)"
+            : "transparent",
+          borderLeft: isSelected
+            ? "3px solid var(--color-accent)"
+            : "3px solid transparent",
+          transition: "background 0.15s",
+          cursor: "pointer",
+          position: "relative",
+        }}
       >
-        <p className="text-sm leading-snug line-clamp-2">{article.title}</p>
-        <p className="text-xs text-gray-400 mt-1">
-          {article.readingTime} min · {formatDate(article.publishedAt)}
+        {/* Meta row */}
+        <div
+          className="text-caption mb-1.5 flex items-center gap-1.5"
+          style={{ color: "var(--color-label-secondary)" }}
+        >
+          <span>{formatDate(article.publishedAt)}</span>
+          <span>·</span>
+          <span>{article.readingTime} min</span>
+        </div>
+
+        {/* Title */}
+        <p
+          className="text-subheadline leading-snug line-clamp-2 mb-1"
+          style={{
+            color: article.isRead ? "var(--color-label-secondary)" : "var(--color-label)",
+            fontWeight: article.isRead ? 400 : 600,
+          }}
+        >
+          {article.title}
         </p>
+
+        {/* Tags */}
+        {article.tags && article.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {article.tags.slice(0, 3).map((tag) => (
+              <span key={tag} className="tag">{tag}</span>
+            ))}
+          </div>
+        )}
+
+        {/* Bookmark action — shows on hover */}
+        <div
+          style={{
+            position: "absolute",
+            right: 12,
+            top: "50%",
+            transform: "translateY(-50%)",
+            opacity: hovered ? 1 : 0,
+            transition: "opacity 0.15s",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+          onClick={handleBookmark}
+        >
+          {article.isBookmarked ? (
+            <BookmarkCheck
+              size={16}
+              style={{ color: "var(--color-accent-purple)" }}
+            />
+          ) : (
+            <BookmarkIcon
+              size={16}
+              style={{ color: "var(--color-label-tertiary)" }}
+            />
+          )}
+        </div>
       </button>
     </li>
   );

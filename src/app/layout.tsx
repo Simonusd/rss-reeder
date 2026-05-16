@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body className="antialiased bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+      <body style={{ background: "var(--color-bg-primary)", color: "var(--color-label)" }}>
         {children}
       </body>
     </html>

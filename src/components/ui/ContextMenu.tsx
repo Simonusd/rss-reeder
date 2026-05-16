@@ -39,26 +39,46 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
 
   if (!mounted) return null;
 
-  const style: React.CSSProperties = {
-    position: "fixed",
-    top: Math.min(y, window.innerHeight - 100),
-    left: Math.min(x, window.innerWidth - 160),
-    zIndex: 9999,
-  };
+  const top = Math.min(y, window.innerHeight - items.length * 36 - 16);
+  const left = Math.min(x, window.innerWidth - 180);
 
   return createPortal(
     <div
       ref={ref}
-      style={style}
-      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[140px]"
+      style={{
+        position: "fixed",
+        top,
+        left,
+        zIndex: 9999,
+        background: "var(--color-material-thick)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderRadius: "var(--radius-md)",
+        border: "1px solid var(--color-separator)",
+        boxShadow: "var(--shadow-md)",
+        padding: "4px 0",
+        minWidth: 160,
+        animation: "modalIn 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)",
+      }}
     >
-      {items.map((item) => (
+      {items.map((item, i) => (
         <button
           key={item.label}
           onClick={() => { item.onClick(); onClose(); }}
-          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-            item.danger ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-200"
-          }`}
+          style={{
+            width: "100%",
+            textAlign: "left",
+            padding: "8px 16px",
+            fontSize: 14,
+            color: item.danger ? "var(--color-accent-red)" : "var(--color-label)",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            borderTop: i > 0 ? "1px solid var(--color-separator)" : "none",
+            transition: "background 0.1s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.05)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
           {item.label}
         </button>

@@ -10,7 +10,9 @@ interface Props {
   onCancel: () => void;
 }
 
-export default function ConfirmDialog({ message, confirmLabel = "Usuń", onConfirm, onCancel }: Props) {
+export default function ConfirmDialog({
+  message, confirmLabel = "Usuń", onConfirm, onCancel,
+}: Props) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -18,19 +20,59 @@ export default function ConfirmDialog({ message, confirmLabel = "Usuń", onConfi
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
-        <p className="text-sm text-gray-700 dark:text-gray-200 mb-5">{message}</p>
-        <div className="flex justify-end gap-2">
+    <div
+      className="modal-overlay fixed inset-0 z-[10000] flex items-center justify-center"
+      onClick={onCancel}
+    >
+      <div
+        className="modal modal-enter"
+        style={{ maxWidth: 360 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p
+          className="text-body mb-6"
+          style={{ color: "var(--color-label)", textAlign: "center" }}
+        >
+          {message}
+        </p>
+        <div
+          style={{
+            borderTop: "1px solid var(--color-separator)",
+            display: "flex",
+          }}
+        >
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+            style={{
+              flex: 1,
+              padding: "14px",
+              fontSize: 17,
+              fontWeight: 400,
+              color: "var(--color-accent)",
+              background: "transparent",
+              border: "none",
+              borderRight: "1px solid var(--color-separator)",
+              cursor: "pointer",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.04)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             Anuluj
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium"
+            style={{
+              flex: 1,
+              padding: "14px",
+              fontSize: 17,
+              fontWeight: 600,
+              color: "var(--color-accent-red)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,59,48,0.06)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             {confirmLabel}
           </button>
