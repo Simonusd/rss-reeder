@@ -77,17 +77,17 @@ export default function Sidebar({
         <span className="text-headline" style={{ color: "var(--color-label)" }}>
           RSS Reader
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
             className="flex items-center justify-center rounded-lg transition-colors duration-150"
             style={{
               width: 32, height: 32,
-              color: "var(--color-label-secondary)",
+              color: "var(--color-accent)",
             }}
             title="Odśwież feedy"
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,122,255,0.08)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />

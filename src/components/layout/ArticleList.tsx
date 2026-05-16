@@ -86,11 +86,11 @@ export default function ArticleList({
           className="flex items-center justify-center rounded-lg transition-colors duration-150"
           style={{
             width: 32, height: 32,
-            color: searchOpen ? "var(--color-accent)" : "var(--color-label-secondary)",
+            color: "var(--color-accent)",
             background: searchOpen ? "rgba(0,122,255,0.08)" : "transparent",
           }}
           title="Szukaj"
-          onMouseEnter={e => { if (!searchOpen) e.currentTarget.style.background = "rgba(0,0,0,0.06)"; }}
+          onMouseEnter={e => { if (!searchOpen) e.currentTarget.style.background = "rgba(0,122,255,0.08)"; }}
           onMouseLeave={e => { if (!searchOpen) e.currentTarget.style.background = "transparent"; }}
         >
           <Search size={16} />

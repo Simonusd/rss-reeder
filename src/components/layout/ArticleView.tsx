@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ChevronLeft, ExternalLink, Share } from "lucide-react";
+import {
+  ChevronLeft, ExternalLink, Share,
+  BookOpen, Sparkles, Languages, Tag, RefreshCw, X,
+} from "lucide-react";
 import type { Article } from "@/types";
 import ReaderMode from "@/components/articles/ReaderMode";
-import AIToolbar from "@/components/ai/AIToolbar";
+import { useSettings } from "@/hooks/useSettings";
+import { updateArticle } from "@/lib/firestore";
 
 interface Props {
   userId: string;
@@ -20,21 +24,15 @@ interface Props {
 export default function ArticleView({
   userId, articleId, onActivate, viewRef, iframeMode, onIframeClose,
 }: Props) {
+  const { settings } = useSettings(userId);
+
   const [article, setArticle] = useState<Article | null>(null);
   const [fetchedContent, setFetchedContent] = useState<string | null>(null);
-  const [iframeCopied, setIframeCopied] = useState(false);
-
-  async function shareIframe(url: string, title: string) {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, url });
-      } catch { /* user cancelled */ }
-    } else {
-      await navigator.clipboard.writeText(url);
-      setIframeCopied(true);
-      setTimeout(() => setIframeCopied(false), 2000);
-    }
-  }
+  const [copied, setCopied] = useState(false);
+  const [fetchingContent, setFetchingContent] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiActive, setAiActive] = useState<string | null>(null);
+  const [aiResult, setAiResult] = useState("");
 
   useEffect(() => {
     if (!articleId) { setArticle(null); return; }
@@ -42,11 +40,62 @@ export default function ArticleView({
       if (snap.exists()) setArticle({ id: snap.id, ...snap.data() } as Article);
     });
     setFetchedContent(null);
+    setAiResult("");
+    setAiActive(null);
+    setFetchingContent(false);
   }, [articleId, userId]);
 
-  const handleContentFetched = useCallback((content: string) => {
-    setFetchedContent(content);
-  }, []);
+  async function share(url: string, title: string) {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  async function fetchFullContent() {
+    if (!article) return;
+    setFetchingContent(true);
+    try {
+      const res = await fetch(`/api/fetch-article?url=${encodeURIComponent(article.url)}`);
+      const data = await res.json();
+      if (data.content) setFetchedContent(data.content);
+    } catch { /* silently fail */ } finally {
+      setFetchingContent(false);
+    }
+  }
+
+  async function runAI(action: "summarize" | "translate" | "autotag") {
+    if (!article) return;
+    setAiLoading(true);
+    setAiActive(action);
+    setAiResult("");
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action,
+          content: article.content,
+          provider: settings.aiProvider,
+          apiKey: settings.aiApiKey,
+          model: settings.aiModel,
+        }),
+      });
+      const data = await res.json();
+      setAiResult(data.result ?? data.error ?? "");
+      if (action === "summarize") await updateArticle(userId, article.id, { summary: data.result });
+      if (action === "autotag") await updateArticle(userId, article.id, { tags: data.result });
+    } catch {
+      setAiResult("Błąd podczas wywołania AI");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   if (!article) {
     return (
@@ -77,6 +126,8 @@ export default function ArticleView({
     );
   }
 
+  const aiDisabled = !settings.aiApiKey || aiLoading || fetchingContent;
+
   return (
     <main
       ref={viewRef}
@@ -86,22 +137,21 @@ export default function ArticleView({
         flex: 1,
         outline: "none",
         background: "var(--color-bg-primary)",
-        overflow: iframeMode ? "hidden" : "auto",
+        overflow: "hidden",
         display: "flex",
         flexDirection: "column",
       }}
     >
       {iframeMode ? (
         <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
-          {/* Iframe toolbar */}
           <div
             className="toolbar"
-            style={{ gap: 12, justifyContent: "space-between", flexShrink: 0 }}
+            style={{ gap: 8, justifyContent: "space-between", flexShrink: 0 }}
           >
             <button
               onClick={onIframeClose}
-              className="flex items-center gap-1.5 text-sm"
-              style={{ color: "var(--color-accent)" }}
+              className="flex items-center gap-1.5"
+              style={{ color: "var(--color-accent)", fontSize: 14, fontWeight: 500 }}
             >
               <ChevronLeft size={16} />
               Wróć do readera
@@ -112,31 +162,22 @@ export default function ArticleView({
             >
               {article.url}
             </span>
-            <button
-              onClick={() => shareIframe(article.url, article.title)}
+            <ToolbarIconButton
               title="Udostępnij"
-              style={{
-                color: iframeCopied ? "var(--color-accent-green)" : "var(--color-label-secondary)",
-                flexShrink: 0,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-                display: "flex",
-                alignItems: "center",
-                transition: "color 0.15s",
-              }}
+              onClick={() => share(article.url, article.title)}
+              style={{ color: copied ? "var(--color-accent-green)" : undefined }}
             >
-              <Share size={14} />
-            </button>
-            <a
+              <Share size={16} />
+            </ToolbarIconButton>
+            <ToolbarIconButton
+              title="Otwórz oryginał"
+              as="a"
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: "var(--color-label-secondary)", flexShrink: 0 }}
             >
-              <ExternalLink size={14} />
-            </a>
+              <ExternalLink size={16} />
+            </ToolbarIconButton>
           </div>
           <iframe
             src={`/api/proxy?url=${encodeURIComponent(article.url)}`}
@@ -145,11 +186,152 @@ export default function ArticleView({
           />
         </div>
       ) : (
-        <div style={{ maxWidth: 760, margin: "0 auto", width: "100%", padding: "0 0 80px" }}>
-          <AIToolbar article={article} userId={userId} onContentFetched={handleContentFetched} />
-          <ReaderMode article={article} contentOverride={fetchedContent} />
-        </div>
+        <>
+          <div className="toolbar" style={{ gap: 8, justifyContent: "space-between" }}>
+            <span
+              className="text-headline flex-1 truncate"
+              style={{ color: "var(--color-label)" }}
+            >
+              {article.title}
+            </span>
+            <ToolbarIconButton
+              title="Pobierz treść"
+              onClick={fetchFullContent}
+              disabled={fetchingContent || aiLoading}
+            >
+              {fetchingContent
+                ? <RefreshCw size={16} className="animate-spin" />
+                : <BookOpen size={16} />}
+            </ToolbarIconButton>
+            <ToolbarIconButton
+              title="Streść"
+              onClick={() => runAI("summarize")}
+              disabled={aiDisabled}
+            >
+              <Sparkles size={16} className={aiActive === "summarize" && aiLoading ? "animate-spin" : ""} />
+            </ToolbarIconButton>
+            <ToolbarIconButton
+              title="Przetłumacz"
+              onClick={() => runAI("translate")}
+              disabled={aiDisabled}
+            >
+              <Languages size={16} />
+            </ToolbarIconButton>
+            <ToolbarIconButton
+              title="Dodaj tagi"
+              onClick={() => runAI("autotag")}
+              disabled={aiDisabled}
+            >
+              <Tag size={16} />
+            </ToolbarIconButton>
+            <div style={{ width: 1, height: 18, background: "var(--color-separator)", margin: "0 4px", flexShrink: 0 }} />
+            <ToolbarIconButton
+              title="Udostępnij"
+              onClick={() => share(article.url, article.title)}
+              style={{ color: copied ? "var(--color-accent-green)" : undefined }}
+            >
+              <Share size={16} />
+            </ToolbarIconButton>
+            <ToolbarIconButton
+              title="Otwórz oryginał"
+              as="a"
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink size={16} />
+            </ToolbarIconButton>
+          </div>
+
+          {aiResult && (
+            <div
+              style={{
+                background: "var(--color-material-thick)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                borderBottom: "1px solid var(--color-separator)",
+                padding: "12px 16px",
+                display: "flex",
+                gap: 12,
+                alignItems: "flex-start",
+                flexShrink: 0,
+              }}
+            >
+              <p
+                className="text-footnote"
+                style={{ flex: 1, color: "var(--color-label)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}
+              >
+                {aiResult}
+              </p>
+              <button
+                onClick={() => setAiResult("")}
+                style={{
+                  color: "var(--color-label-tertiary)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            <div style={{ maxWidth: 760, margin: "0 auto", width: "100%", padding: "0 0 80px" }}>
+              <ReaderMode article={article} contentOverride={fetchedContent} />
+            </div>
+          </div>
+        </>
       )}
     </main>
+  );
+}
+
+type ToolbarIconButtonProps = {
+  title: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+  disabled?: boolean;
+} & (
+  | { as?: "button"; onClick: () => void; href?: never; target?: never; rel?: never }
+  | { as: "a"; href: string; target: string; rel: string; onClick?: never }
+);
+
+function ToolbarIconButton({ title, children, style, disabled, as: Tag = "button", ...rest }: ToolbarIconButtonProps) {
+  const [hovered, setHovered] = useState(false);
+  const base: React.CSSProperties = {
+    width: 32,
+    height: 32,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    background: hovered && !disabled ? "rgba(0,122,255,0.08)" : "transparent",
+    color: "var(--color-accent)",
+    border: "none",
+    cursor: disabled ? "not-allowed" : "pointer",
+    textDecoration: "none",
+    flexShrink: 0,
+    opacity: disabled ? 0.35 : 1,
+    transition: "background 0.15s, opacity 0.15s",
+    ...style,
+  };
+  return (
+    // @ts-expect-error dynamic tag
+    <Tag
+      title={title}
+      style={base}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      {...(Tag === "button" ? { disabled } : {})}
+      {...rest}
+    >
+      {children}
+    </Tag>
   );
 }
