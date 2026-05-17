@@ -219,7 +219,7 @@ Mobile (< 768px): drilldown navigation — only one column visible at a time.
 **Mobile swipe navigation:**
 - Col 1 (Sidebar): swipe left → col 2
 - Col 2 (ArticleList): swipe left → col 3; swipe right → col 1
-- Col 3 (ArticleView): swipe left → next article; swipe right → back to col 2 (list)
+- Col 3 (ArticleView): swipe left → next article; swipe right → prev article (back to col 2 if at first article)
 
 Swipe detection pattern (all three components):
 ```typescript
@@ -276,6 +276,21 @@ Empty states: each filter has a dedicated empty state with icon + title + descri
 - Relative time with minute precision (e.g. "4 min temu", "2 godz. temu", "wczoraj")
 - **Does NOT call `markAsRead` on click** — only navigates to the article. Marking as read is handled by a 3-second timer in `ReaderContent`.
 
+### Iframe mode — oryginalna strona w readerze
+
+Na **desktopie**: gdy `activeColumn === "article"` i jest otwarty artykuł, naciśnięcie `→` (ArrowRight) wchodzi w `iframeMode`. Artykuł ładuje się przez `/api/proxy` w `<iframe>`, zastępując reader mode.
+
+**Toolbar iframeMode** (w `ArticleView`) zawiera:
+- **"Wróć do readera"** — wywołuje `onIframeClose()` z `e.stopPropagation()`. Ma `zIndex: 10` i `position: relative` aby być nad iframe (iframe tworzy własny stacking context). Wrapper iframeMode używa `flex: 1` (nie `height: 100%`) do właściwego wypełnienia flex-parent.
+- URL artykułu, Share, ExternalLink
+
+**Wyjście z iframeMode:**
+- Klik "Wróć do readera" (przycisk)
+- Klawisz `←` (ArrowLeft) — działa tylko gdy focus jest na outer app, nie wewnątrz iframe (iframe przechwytuje keydown)
+- Zmiana artykułu (useEffect resetuje iframeMode)
+
+**Mobile:** iframeMode niedostępny (brak klawiatury i odpowiednich wymiarów ekranu).
+
 ### Iframe mode — cookie consent blocking
 
 `/api/proxy/route.ts` injects a `<style>` + `<script>` block into every proxied HTML page. The CSS hides known cookie-consent overlays immediately. The script adds a `MutationObserver` to catch popups injected asynchronously, and restores `body { overflow: auto }`.
@@ -289,7 +304,8 @@ Empty states: each filter has a dedicated empty state with icon + title + descri
 - `activeColumn`, `sidebarCursorIndex` — keyboard navigation state
 - `feedIdRef`, `filterRef` — refs updated synchronously each render, used by `handleRefreshComplete` callback to always read the latest URL params
 - `locallyReadIds` — Set of article IDs marked as read in the current session; keeps them visible in `?filter=unread` until refresh. Reset when filter changes or refresh completes.
-- `sidebarKeyNavRef` — `useRef(false)`: set to `true` before `router.push` in sidebar keyboard nav block; consumed and cleared in `useEffect([feedId, filter])` to prevent auto-closing the sidebar on mobile when the URL change came from keyboard (not a click)
+- `iframeMode` — `boolean`: whether article view is showing the original page in an iframe (desktop only). Toggled by ArrowRight/ArrowLeft. Reset on articleId change.
+- `sidebarKeyNavRef` — `useRef(false)`: set to `true` before `router.push` in sidebar keyboard nav block; consumed and cleared in `useEffect([feedId, filter])` — on mobile, when feed/filter changes (regardless of sidebar state) always returns to col 2 (list). The ref prevents this when the change comes from keyboard navigation.
 - `listKeyNavRef` — `useRef(false)`: same pattern for col 2; consumed by `useEffect([articleId])` to prevent auto-switching to col 3 on mobile when keyboard navigated within the list
 - `cardRefs` — `useRef<Map<string, HTMLElement>>`: stores DOM refs to article cards; used to scroll the selected card into view during keyboard and swipe navigation
 
@@ -318,8 +334,10 @@ Implemented in `ReaderContent` via a `window` `keydown` listener (`handleKeyDown
 
 | Key | Column | Action |
 |-----|--------|--------|
-| `←` | any | Move focus to previous column |
-| `→` | any | Move focus to next column |
+| `←` | any (not iframeMode) | Move focus to previous column |
+| `←` | col 3, iframeMode | Exit iframeMode (back to reader) |
+| `→` | col 3, article open, not iframeMode | Enter iframeMode (original page in reader) |
+| `→` | any (not col 3) | Move focus to next column |
 | `↑` / `↓` | sidebar (col 1) | Navigate sidebar items (All / Unread / Bookmarks / Folder / Feed), live URL update |
 | `↑` / `↓` | article list (col 2) | Navigate between articles; stays in col 2 (does NOT auto-switch to col 3 on mobile) |
 | `↑` / `↓` | article view (col 3) | Navigate to previous/next article (calls `navigateToArticle`) |

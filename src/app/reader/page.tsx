@@ -28,13 +28,13 @@ function getInitialSidebarIndex(
     return i >= 0 ? i : 0;
   }
   if (filter === "unread") {
-    return items.findIndex(x => x.kind === "filter" && x.value === "unread");
+    return Math.max(0, items.findIndex(x => x.kind === "filter" && x.value === "unread"));
   }
   if (filter === "bookmarks") {
-    return items.findIndex(x => x.kind === "filter" && x.value === "bookmarks");
+    return Math.max(0, items.findIndex(x => x.kind === "filter" && x.value === "bookmarks"));
   }
   if (filter === "read") {
-    return items.findIndex(x => x.kind === "filter" && x.value === "read");
+    return Math.max(0, items.findIndex(x => x.kind === "filter" && x.value === "read"));
   }
   return 0;
 }
@@ -82,8 +82,7 @@ function ReaderContent() {
   useEffect(() => {
     if (window.innerWidth >= 768) return;
     if (sidebarKeyNavRef.current) { sidebarKeyNavRef.current = false; return; }
-    if (activeColumn === "sidebar") setActiveColumn("list");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setActiveColumn("list");
   }, [feedId, filter]);
 
   const handleRefreshComplete = useCallback(() => {
@@ -322,6 +321,13 @@ function ReaderContent() {
     setActiveColumn("list");
   }, [router]);
 
+  const handlePrev = useCallback(() => {
+    if (!articleId) { handleMobileBack(); return; }
+    const idx = filteredArticles.findIndex(a => a.id === articleId);
+    if (idx <= 0) { handleMobileBack(); return; }
+    navigateToArticle("prev");
+  }, [articleId, filteredArticles, navigateToArticle, handleMobileBack]);
+
   if (loading || !user) {
     return (
       <div
@@ -372,7 +378,7 @@ function ReaderContent() {
         onIframeClose={() => setIframeMode(false)}
         onBack={handleMobileBack}
         onNext={() => navigateToArticle("next")}
-        onPrev={() => navigateToArticle("prev")}
+        onPrev={handlePrev}
       />
     </div>
   );
