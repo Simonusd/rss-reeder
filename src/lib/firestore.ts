@@ -30,10 +30,14 @@ export async function saveSettings(userId: string, settings: Partial<UserSetting
 // Feeds
 export function subscribeToFeeds(userId: string, callback: (feeds: Feed[]) => void): Unsubscribe {
   const q = query(collection(db(), "users", userId, "feeds"));
-  return onSnapshot(q, (snap) => {
-    const feeds = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Feed));
-    callback(feeds);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const feeds = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Feed));
+      callback(feeds);
+    },
+    (error) => console.error("subscribeToFeeds error:", error)
+  );
 }
 
 export async function addFeed(userId: string, feed: Omit<Feed, "id">): Promise<string> {
@@ -55,10 +59,14 @@ export async function updateFeed(userId: string, feedId: string, data: Partial<F
 // Folders
 export function subscribeToFolders(userId: string, callback: (folders: Folder[]) => void): Unsubscribe {
   const q = query(collection(db(), "users", userId, "folders"), orderBy("order"));
-  return onSnapshot(q, (snap) => {
-    const folders = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Folder));
-    callback(folders);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const folders = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Folder));
+      callback(folders);
+    },
+    (error) => console.error("subscribeToFolders error:", error)
+  );
 }
 
 export async function addFolder(userId: string, name: string, order: number): Promise<string> {

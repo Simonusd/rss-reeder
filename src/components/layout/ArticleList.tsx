@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search } from "lucide-react";
 import ArticleCard from "@/components/articles/ArticleCard";
 import type { Article } from "@/types";
@@ -47,11 +47,12 @@ export default function ArticleList({
     setSearchOpen(false);
   }, [feedId, filter]);
 
-  const displayed = searchQuery.trim()
-    ? filteredArticles.filter((a) =>
-        a.title.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : filteredArticles;
+  const displayed = useMemo(
+    () => searchQuery.trim()
+      ? filteredArticles.filter((a) => a.title.toLowerCase().includes(searchQuery.toLowerCase()))
+      : filteredArticles,
+    [filteredArticles, searchQuery]
+  );
 
   const isEmpty = !loading && displayed.length === 0;
 
