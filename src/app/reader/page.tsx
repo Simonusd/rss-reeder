@@ -136,7 +136,7 @@ function ReaderContent() {
       if (!article || article.isRead) return;
       markAsRead(user.uid, article.id, true, article.feedId);
       setLocallyReadIds(prev => new Set([...prev, article.id]));
-    }, 3000);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [articleId, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 

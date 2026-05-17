@@ -311,7 +311,7 @@ Na **desktopie**: gdy `activeColumn === "article"` i jest otwarty artykuł, naci
 
 **`navigateToArticle(direction)`** — `useCallback` defined in `ReaderContent`; finds current article index in `filteredArticles`, computes next/prev index, pushes URL, and calls `cardRefs.current.get(id)?.scrollIntoView(...)`. Passed as `onNext`/`onPrev` to `ArticleView` (swipe in col 3) and called directly from `handleKeyDown` when in col 3.
 
-**Marking as read — 3-second timer:** When `articleId` changes, a `setTimeout(3000)` fires and calls `markAsRead` if the article is still unread. Timer jest ustawiony na `3000` ms (nie zmieniać na 1000 — krótszy czas powodował przypadkowe oznaczanie artykułów jako przeczytane przy przeglądaniu). Uses `articlesRef` (ref updated on every articles change) to read the latest article state at fire time. This replaces the old instant-on-click approach. The `locallyReadIds` set ensures the article stays visible in the unread filter even after `isRead` flips to `true` in Firestore.
+**Marking as read — 1-second timer:** When `articleId` changes, a `setTimeout(1000)` fires and calls `markAsRead` if the article is still unread. Uses `articlesRef` (ref updated on every articles change) to read the latest article state at fire time. This replaces the old instant-on-click approach. The `locallyReadIds` set ensures the article stays visible in the unread filter even after `isRead` flips to `true` in Firestore.
 
 Props flow down to `Sidebar`, `ArticleList`, `ArticleView`:
 - `Sidebar` receives `onSwipeLeft` (→ col 2)
