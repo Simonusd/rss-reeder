@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
-import { login } from "@/lib/auth";
+import { login, resetPassword } from "@/lib/auth";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -13,6 +13,45 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+
+  function openReset() {
+    setResetEmail(email);
+    setResetError("");
+    setResetSent(false);
+    setShowReset(true);
+  }
+
+  function closeReset() {
+    setShowReset(false);
+    setResetError("");
+    setResetSent(false);
+  }
+
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    setResetError("");
+    setResetLoading(true);
+    try {
+      await resetPassword(resetEmail);
+      setResetSent(true);
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if (code === "auth/user-not-found") {
+        setResetError("Nie znaleziono konta z tym adresem.");
+      } else if (code === "auth/invalid-email") {
+        setResetError("Nieprawidłowy adres email.");
+      } else {
+        setResetError("Błąd wysyłania. Spróbuj ponownie.");
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,6 +130,17 @@ export default function LoginForm() {
         </div>
       </div>
 
+      <div style={{ textAlign: "right" }}>
+        <button
+          type="button"
+          className="btn-ghost"
+          style={{ fontSize: 14, padding: "2px 6px" }}
+          onClick={openReset}
+        >
+          Zapomniałeś hasła?
+        </button>
+      </div>
+
       {error && (
         <p
           className="text-footnote"
@@ -123,6 +173,80 @@ export default function LoginForm() {
           Zarejestruj się
         </Link>
       </p>
+
+      {showReset && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeReset(); }}
+        >
+          <div className="modal modal-enter">
+            <h2 className="text-title3" style={{ marginBottom: 8 }}>Odzyskaj hasło</h2>
+            <p className="text-subheadline" style={{ color: "var(--color-label-secondary)", marginBottom: 20 }}>
+              Wpisz adres email powiązany z kontem. Wyślemy link do resetowania hasła.
+            </p>
+
+            {resetSent ? (
+              <>
+                <p
+                  className="text-footnote"
+                  style={{
+                    color: "var(--color-accent-green)",
+                    background: "rgba(52,199,89,0.10)",
+                    padding: "10px 14px",
+                    borderRadius: "var(--radius-md)",
+                    marginBottom: 16,
+                  }}
+                >
+                  Sprawdź skrzynkę email — wysłaliśmy link do resetowania hasła.
+                </p>
+                <button type="button" className="btn-primary" style={{ width: "100%" }} onClick={closeReset}>
+                  Zamknij
+                </button>
+              </>
+            ) : (
+              <form onSubmit={handleReset} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="adres@email.com"
+                  required
+                  className="input"
+                  autoFocus
+                />
+                {resetError && (
+                  <p
+                    className="text-footnote"
+                    style={{
+                      color: "var(--color-accent-red)",
+                      background: "rgba(255,59,48,0.08)",
+                      padding: "10px 14px",
+                      borderRadius: "var(--radius-md)",
+                    }}
+                  >
+                    {resetError}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={resetLoading || !resetEmail}
+                  className="btn-primary"
+                  style={{ width: "100%" }}
+                >
+                  {resetLoading ? "Wysyłanie…" : "Wyślij link"}
+                </button>
+                <button type="button" className="btn-secondary" style={{ width: "100%" }} onClick={closeReset}>
+                  Anuluj
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </form>
   );
 }
