@@ -57,6 +57,7 @@ function ReaderContent() {
 
   useEffect(() => {
     if (!loading && !user) {
+      if ("clearAppBadge" in navigator) navigator.clearAppBadge();
       document.cookie = "session=; path=/; max-age=0";
       router.replace("/login");
     }
@@ -97,6 +98,20 @@ function ReaderContent() {
 
   const { articles, loading: articlesLoading } = useArticles(user?.uid ?? null, feedId);
   const { feeds, folders } = useFeeds(user?.uid ?? null);
+
+  const totalUnread = useMemo(
+    () => feeds.reduce((s, f) => s + (f.unreadCount ?? 0), 0),
+    [feeds]
+  );
+
+  useEffect(() => {
+    if (!("setAppBadge" in navigator)) return;
+    if (totalUnread > 0) {
+      navigator.setAppBadge(totalUnread);
+    } else {
+      navigator.clearAppBadge();
+    }
+  }, [totalUnread]);
 
   const articlesRef = useRef(articles);
   useEffect(() => { articlesRef.current = articles; }, [articles]);
