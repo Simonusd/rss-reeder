@@ -50,6 +50,8 @@ function ReaderContent() {
   const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const articleViewRef = useRef<HTMLElement>(null);
+  const sidebarKeyNavRef = useRef(false);
+  const listKeyNavRef = useRef(false);
   const feedIdRef = useRef<string | null>(null);
   const filterRef = useRef<string | null>(null);
 
@@ -72,11 +74,13 @@ function ReaderContent() {
   // Na mobile: auto-przełącz kolumnę gdy zmienia się articleId
   useEffect(() => {
     if (window.innerWidth >= 768) return;
+    if (listKeyNavRef.current) { listKeyNavRef.current = false; return; }
     setActiveColumn(articleId ? "article" : "list");
   }, [articleId]);
 
   useEffect(() => {
     if (window.innerWidth >= 768) return;
+    if (sidebarKeyNavRef.current) { sidebarKeyNavRef.current = false; return; }
     if (activeColumn === "sidebar") setActiveColumn("list");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedId, filter]);
@@ -173,6 +177,7 @@ function ReaderContent() {
     if (filter) params.set("filter", filter);
     params.set("articleId", next.id);
     router.push(`/reader?${params.toString()}`);
+    cardRefs.current.get(next.id)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [filteredArticles, articleId, feedId, filter, router]);
 
   const handleKeyDown = useCallback(
@@ -224,6 +229,7 @@ function ReaderContent() {
           const params = new URLSearchParams();
           if (articleId) params.set("articleId", articleId);
 
+          sidebarKeyNavRef.current = true;
           switch (next.kind) {
             case "all":
               router.push(`/reader${articleId ? `?articleId=${articleId}` : ""}`);
@@ -266,6 +272,7 @@ function ReaderContent() {
           if (feedId) params.set("feedId", feedId);
           if (filter) params.set("filter", filter);
           params.set("articleId", next.id);
+          listKeyNavRef.current = true;
           router.push(`/reader?${params.toString()}`);
 
           cardRefs.current.get(next.id)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -282,7 +289,6 @@ function ReaderContent() {
       feedId,
       filter,
       router,
-      user,
       navigateToArticle,
     ]
   );
