@@ -75,6 +75,12 @@ function ReaderContent() {
     setActiveColumn(articleId ? "article" : "list");
   }, [articleId]);
 
+  useEffect(() => {
+    if (window.innerWidth >= 768) return;
+    if (activeColumn === "sidebar") setActiveColumn("list");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedId, filter]);
+
   const handleRefreshComplete = useCallback(() => {
     setLocallyReadIds(new Set());
     if (!filterRef.current) {

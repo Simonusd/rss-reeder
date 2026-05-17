@@ -417,6 +417,7 @@ body {
 @media (max-width: 767px) {
   .mobile-col-container {
     position: relative;
+    height: 100dvh;
   }
 
   .col-sidebar,
@@ -431,6 +432,6 @@ body {
   .col-sidebar:not(.mobile-active),
   .col-list:not(.mobile-active),
   .col-article:not(.mobile-active) {
-    display: none;
+    display: none !important;
   }
 }
