@@ -112,7 +112,7 @@ export default function ArticleView({
     const deltaY = touchStart.current.y - e.changedTouches[0].clientY;
     if (Math.abs(deltaX) < 50 || Math.abs(deltaY) > Math.abs(deltaX)) return;
     if (deltaX > 0) onNext?.();
-    else onPrev?.();
+    else onBack?.();
   };
 
   if (!article) {
@@ -136,7 +136,7 @@ export default function ArticleView({
       >
         <button
           className="mobile-only btn-ghost"
-          onClick={onBack}
+          onClick={(e) => { e.stopPropagation(); onBack?.(); }}
           style={{
             position: "absolute", top: 12, left: 12,
             display: "flex", alignItems: "center", gap: 4,
@@ -225,7 +225,7 @@ export default function ArticleView({
           <div className="toolbar" style={{ gap: 8, justifyContent: "space-between" }}>
             <button
               className="mobile-only flex items-center gap-1"
-              onClick={onBack}
+              onClick={(e) => { e.stopPropagation(); onBack?.(); }}
               style={{ color: "var(--color-accent)", fontSize: 15, fontWeight: 500, flexShrink: 0 }}
             >
               <ChevronLeft size={16} /> Artykuły

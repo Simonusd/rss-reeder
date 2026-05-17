@@ -219,7 +219,7 @@ Mobile (< 768px): drilldown navigation — only one column visible at a time.
 **Mobile swipe navigation:**
 - Col 1 (Sidebar): swipe left → col 2
 - Col 2 (ArticleList): swipe left → col 3; swipe right → col 1
-- Col 3 (ArticleView): swipe left → next article; swipe right → prev article
+- Col 3 (ArticleView): swipe left → next article; swipe right → back to col 2 (list)
 
 Swipe detection pattern (all three components):
 ```typescript
