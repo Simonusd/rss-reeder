@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -21,10 +21,12 @@ interface Props {
   iframeMode: boolean;
   onIframeClose: () => void;
   onBack?: () => void;
+  onNext?: () => void;
+  onPrev?: () => void;
 }
 
 export default function ArticleView({
-  className, userId, articleId, onActivate, viewRef, iframeMode, onIframeClose, onBack,
+  className, userId, articleId, onActivate, viewRef, iframeMode, onIframeClose, onBack, onNext, onPrev,
 }: Props) {
   const { settings } = useSettings(userId);
 
@@ -101,6 +103,14 @@ export default function ArticleView({
     }
   }
 
+  const touchStartX = useRef(0);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const delta = touchStartX.current - e.changedTouches[0].clientX;
+    if (delta > 50) onNext?.();
+    else if (delta < -50) onPrev?.();
+  };
+
   if (!article) {
     return (
       <main
@@ -108,6 +118,8 @@ export default function ArticleView({
         onClick={onActivate}
         tabIndex={-1}
         className={className}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         style={{
           flex: 1,
           display: "flex",
@@ -150,6 +162,8 @@ export default function ArticleView({
       onClick={onActivate}
       tabIndex={-1}
       className={className}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{
         flex: 1,
         outline: "none",

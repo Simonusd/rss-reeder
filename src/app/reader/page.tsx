@@ -159,6 +159,22 @@ function ReaderContent() {
     else cardRefs.current.delete(id);
   }, []);
 
+  const navigateToArticle = useCallback((direction: "next" | "prev") => {
+    if (!articleId || filteredArticles.length === 0) return;
+    const currentIndex = filteredArticles.findIndex((a) => a.id === articleId);
+    if (currentIndex === -1) return;
+    const nextIndex = direction === "next"
+      ? Math.min(currentIndex + 1, filteredArticles.length - 1)
+      : Math.max(currentIndex - 1, 0);
+    const next = filteredArticles[nextIndex];
+    if (next.id === articleId) return;
+    const params = new URLSearchParams();
+    if (feedId) params.set("feedId", feedId);
+    if (filter) params.set("filter", filter);
+    params.set("articleId", next.id);
+    router.push(`/reader?${params.toString()}`);
+  }, [filteredArticles, articleId, feedId, filter, router]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName.toLowerCase();
@@ -226,11 +242,8 @@ function ReaderContent() {
           return;
         }
 
-        if (activeColumn === "article" && articleViewRef.current) {
-          articleViewRef.current.scrollBy({
-            top: e.key === "ArrowDown" ? 120 : -120,
-            behavior: "smooth",
-          });
+        if (activeColumn === "article") {
+          navigateToArticle(e.key === "ArrowDown" ? "next" : "prev");
           return;
         }
 
@@ -270,6 +283,7 @@ function ReaderContent() {
       filter,
       router,
       user,
+      navigateToArticle,
     ]
   );
 
@@ -311,6 +325,7 @@ function ReaderContent() {
         highlightedKey={sidebarHighlightKey}
         onRefreshComplete={handleRefreshComplete}
         onClose={() => setActiveColumn("list")}
+        onSwipeLeft={() => setActiveColumn("list")}
       />
       <ArticleList
         className={`col-list${activeColumn === "list" ? " mobile-active" : ""}`}
@@ -323,6 +338,8 @@ function ReaderContent() {
         loading={articlesLoading}
         setCardRef={setCardRef}
         onOpenSidebar={() => setActiveColumn("sidebar")}
+        onSwipeLeft={() => setActiveColumn("article")}
+        onSwipeRight={() => setActiveColumn("sidebar")}
       />
       <ArticleView
         className={`col-article${activeColumn === "article" ? " mobile-active" : ""}`}
@@ -333,6 +350,8 @@ function ReaderContent() {
         iframeMode={iframeMode}
         onIframeClose={() => setIframeMode(false)}
         onBack={handleMobileBack}
+        onNext={() => navigateToArticle("next")}
+        onPrev={() => navigateToArticle("prev")}
       />
     </div>
   );

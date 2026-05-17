@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Rss } from "lucide-react";
 import ArticleCard from "@/components/articles/ArticleCard";
 import type { Article } from "@/types";
@@ -16,6 +16,8 @@ interface Props {
   loading: boolean;
   setCardRef: (id: string, node: HTMLElement | null) => void;
   onOpenSidebar?: () => void;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
 }
 
 function SkeletonCard() {
@@ -39,7 +41,7 @@ function filterTitle(filter: string | null, feedId: string | null): string {
 
 export default function ArticleList({
   className, userId, feedId, filter, articleId, onActivate,
-  filteredArticles, loading, setCardRef, onOpenSidebar,
+  filteredArticles, loading, setCardRef, onOpenSidebar, onSwipeLeft, onSwipeRight,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,9 +60,23 @@ export default function ArticleList({
 
   const isEmpty = !loading && displayed.length === 0;
 
+  const touchStart = useRef({ x: 0, y: 0 });
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const deltaX = touchStart.current.x - e.changedTouches[0].clientX;
+    const deltaY = touchStart.current.y - e.changedTouches[0].clientY;
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaY) > Math.abs(deltaX)) return;
+    if (deltaX > 0) onSwipeLeft?.();
+    else onSwipeRight?.();
+  };
+
   return (
     <div
       onClick={onActivate}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       className={`h-full flex flex-col shrink-0${className ? ` ${className}` : ""}`}
       style={{
         width: 380,

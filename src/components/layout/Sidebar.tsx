@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -23,13 +23,14 @@ interface Props {
   highlightedKey: string | null;
   onRefreshComplete: () => void;
   onClose?: () => void;
+  onSwipeLeft?: () => void;
 }
 
 const NAV_ITEM =
   "flex items-center gap-2.5 px-3 rounded-lg h-9 text-sm transition-colors duration-150 w-full";
 
 export default function Sidebar({
-  className, userId, feeds, folders, onActivate, highlightedKey, onRefreshComplete, onClose,
+  className, userId, feeds, folders, onActivate, highlightedKey, onRefreshComplete, onClose, onSwipeLeft,
 }: Props) {
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,9 +65,22 @@ export default function Sidebar({
 
   const unassignedFeeds = feeds.filter((f) => !f.folderId);
 
+  const touchStart = useRef({ x: 0, y: 0 });
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const deltaX = touchStart.current.x - e.changedTouches[0].clientX;
+    const deltaY = touchStart.current.y - e.changedTouches[0].clientY;
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaY) > Math.abs(deltaX)) return;
+    if (deltaX > 0) onSwipeLeft?.();
+  };
+
   return (
     <aside
       onClick={onActivate}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       className={`h-full flex flex-col shrink-0${className ? ` ${className}` : ""}`}
       style={{
         width: 260,
