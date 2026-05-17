@@ -157,7 +157,7 @@ All three fetch API routes (`/api/fetch-feed`, `/api/fetch-article`, `/api/proxy
 
 Blocked ranges: non-http(s) schemes, `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x`, `169.254.x`, IPv6 loopback/private (`::1`, `::ffff:*`, `fc*`, `fd*`, `fe80*`).
 
-**Known open issue — SSRF via redirect:** `isSafeUrl()` is checked only on the initial URL. If a public server returns a `302 Location: http://192.168.x.x/`, `fetch()` follows it to the private address. Mitigation: pass `redirect: "manual"` to `fetch()` in `src/lib/readability.ts`, `src/lib/rss.ts`, and `src/app/api/proxy/route.ts`, and re-validate the `Location` header through `isSafeUrl()` before following.
+**Redirect safety — `safeFetch()`:** Never use raw `fetch()` in server-side code that fetches user-supplied URLs. Use `safeFetch(url, options)` from `src/lib/validate-url.ts` instead — it follows redirects manually (up to 5 hops), re-validating each `Location` header through `isSafeUrl()` before proceeding. Raw `fetch()` defaults to `redirect: "follow"` which bypasses the SSRF guard on 302 responses.
 
 #### `/api/ai` Input Validation
 
@@ -366,5 +366,4 @@ service cloud.firestore {
 - ⬜ Keyword alerts
 - ⬜ Reading stats/streak
 - ⬜ PDF export
-- ⬜ SSRF via redirect: pass `redirect: "manual"` + re-validate `Location` header in `readability.ts`, `rss.ts`, `proxy/route.ts`
 - ⬜ Walidacja pola `model` w `/api/ai` (regex `/^[\w.-]{1,100}$/`) przed interpolacją w URL Gemini

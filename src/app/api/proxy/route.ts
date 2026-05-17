@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isSafeUrl } from "@/lib/validate-url";
+import { isSafeUrl, safeFetch } from "@/lib/validate-url";
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
@@ -66,14 +66,13 @@ document.readyState==='loading'?document.addEventListener('DOMContentLoaded',hid
 </script>`;
 
   try {
-    const response = await fetch(targetUrl, {
+    const response = await safeFetch(targetUrl, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "pl,en;q=0.9",
       },
-      redirect: "follow",
     });
 
     const contentType = response.headers.get("content-type") ?? "text/html";

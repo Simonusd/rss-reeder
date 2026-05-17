@@ -51,3 +51,29 @@ export function isSafeUrl(rawUrl: string): boolean {
 
   return true;
 }
+
+const MAX_REDIRECTS = 5;
+
+/**
+ * Fetch wrapper that manually follows redirects, re-validating each
+ * Location header through isSafeUrl() to prevent SSRF via open redirects.
+ */
+export async function safeFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  let currentUrl = url;
+
+  for (let i = 0; i <= MAX_REDIRECTS; i++) {
+    const res = await fetch(currentUrl, { ...options, redirect: "manual" });
+
+    if (res.status < 300 || res.status >= 400) return res;
+
+    const location = res.headers.get("location");
+    if (!location) throw new Error("Redirect bez nagłówka Location");
+
+    const resolved = new URL(location, currentUrl).href;
+    if (!isSafeUrl(resolved)) throw new Error("Niedozwolone przekierowanie");
+
+    currentUrl = resolved;
+  }
+
+  throw new Error("Zbyt wiele przekierowań");
+}
