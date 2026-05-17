@@ -13,16 +13,18 @@ import { useSettings } from "@/hooks/useSettings";
 import { updateArticle } from "@/lib/firestore";
 
 interface Props {
+  className?: string;
   userId: string;
   articleId: string | null;
   onActivate: () => void;
   viewRef: React.RefObject<HTMLElement | null>;
   iframeMode: boolean;
   onIframeClose: () => void;
+  onBack?: () => void;
 }
 
 export default function ArticleView({
-  userId, articleId, onActivate, viewRef, iframeMode, onIframeClose,
+  className, userId, articleId, onActivate, viewRef, iframeMode, onIframeClose, onBack,
 }: Props) {
   const { settings } = useSettings(userId);
 
@@ -105,6 +107,7 @@ export default function ArticleView({
         ref={viewRef}
         onClick={onActivate}
         tabIndex={-1}
+        className={className}
         style={{
           flex: 1,
           display: "flex",
@@ -115,6 +118,17 @@ export default function ArticleView({
           outline: "none",
         }}
       >
+        <button
+          className="mobile-only btn-ghost"
+          onClick={onBack}
+          style={{
+            position: "absolute", top: 12, left: 12,
+            display: "flex", alignItems: "center", gap: 4,
+            fontSize: 15, fontWeight: 500,
+          }}
+        >
+          <ChevronLeft size={16} /> Artykuły
+        </button>
         <div className="text-center px-8">
           <p style={{ fontSize: 48, marginBottom: 16 }}>📖</p>
           <p className="text-title3 mb-2" style={{ color: "var(--color-label)" }}>
@@ -135,6 +149,7 @@ export default function ArticleView({
       ref={viewRef}
       onClick={onActivate}
       tabIndex={-1}
+      className={className}
       style={{
         flex: 1,
         outline: "none",
@@ -190,8 +205,15 @@ export default function ArticleView({
       ) : (
         <>
           <div className="toolbar" style={{ gap: 8, justifyContent: "space-between" }}>
+            <button
+              className="mobile-only flex items-center gap-1"
+              onClick={onBack}
+              style={{ color: "var(--color-accent)", fontSize: 15, fontWeight: 500, flexShrink: 0 }}
+            >
+              <ChevronLeft size={16} /> Artykuły
+            </button>
             <span
-              className="text-headline flex-1 truncate"
+              className="text-headline flex-1 truncate desktop-only"
               style={{ color: "var(--color-label)" }}
             >
               {article.title}

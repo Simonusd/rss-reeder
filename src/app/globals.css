@@ -409,3 +409,28 @@ body {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-label-tertiary); }
+
+/* ─── Mobile Layout ─────────────────────────────────────────── */
+@media (max-width: 767px) { .desktop-only { display: none !important; } }
+@media (min-width: 768px) { .mobile-only  { display: none !important; } }
+
+@media (max-width: 767px) {
+  .mobile-col-container {
+    position: relative;
+  }
+
+  .col-sidebar,
+  .col-list,
+  .col-article {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  .col-sidebar:not(.mobile-active),
+  .col-list:not(.mobile-active),
+  .col-article:not(.mobile-active) {
+    display: none;
+  }
+}

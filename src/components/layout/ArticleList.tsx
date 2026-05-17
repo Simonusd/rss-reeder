@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search } from "lucide-react";
+import { Search, Rss } from "lucide-react";
 import ArticleCard from "@/components/articles/ArticleCard";
 import type { Article } from "@/types";
 
 interface Props {
+  className?: string;
   userId: string;
   feedId: string | null;
   filter: string | null;
@@ -14,6 +15,7 @@ interface Props {
   filteredArticles: Article[];
   loading: boolean;
   setCardRef: (id: string, node: HTMLElement | null) => void;
+  onOpenSidebar?: () => void;
 }
 
 function SkeletonCard() {
@@ -36,8 +38,8 @@ function filterTitle(filter: string | null, feedId: string | null): string {
 }
 
 export default function ArticleList({
-  userId, feedId, filter, articleId, onActivate,
-  filteredArticles, loading, setCardRef,
+  className, userId, feedId, filter, articleId, onActivate,
+  filteredArticles, loading, setCardRef, onOpenSidebar,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,7 +61,7 @@ export default function ArticleList({
   return (
     <div
       onClick={onActivate}
-      className="h-full flex flex-col shrink-0"
+      className={`h-full flex flex-col shrink-0${className ? ` ${className}` : ""}`}
       style={{
         width: 380,
         background: "var(--color-bg-primary)",
@@ -68,6 +70,14 @@ export default function ArticleList({
     >
       {/* Toolbar */}
       <div className="toolbar" style={{ gap: 8 }}>
+        <button
+          className="mobile-only flex items-center justify-center rounded-lg"
+          onClick={(e) => { e.stopPropagation(); onOpenSidebar?.(); }}
+          style={{ width: 32, height: 32, color: "var(--color-accent)", flexShrink: 0 }}
+          title="Feedy"
+        >
+          <Rss size={16} />
+        </button>
         <h2
           className="text-headline flex-1"
           style={{ color: "var(--color-label)" }}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   RefreshCw, Plus, Settings, Newspaper,
-  BookmarkIcon, CheckCircle2, Rss,
+  BookmarkIcon, CheckCircle2, Rss, X,
 } from "lucide-react";
 import FolderItem from "@/components/feeds/FolderItem";
 import FeedItem from "@/components/feeds/FeedItem";
@@ -15,19 +15,21 @@ import { saveArticlesForRefresh } from "@/lib/firestore";
 import type { Feed, Folder } from "@/types";
 
 interface Props {
+  className?: string;
   userId: string;
   feeds: Feed[];
   folders: Folder[];
   onActivate: () => void;
   highlightedKey: string | null;
   onRefreshComplete: () => void;
+  onClose?: () => void;
 }
 
 const NAV_ITEM =
   "flex items-center gap-2.5 px-3 rounded-lg h-9 text-sm transition-colors duration-150 w-full";
 
 export default function Sidebar({
-  userId, feeds, folders, onActivate, highlightedKey, onRefreshComplete,
+  className, userId, feeds, folders, onActivate, highlightedKey, onRefreshComplete, onClose,
 }: Props) {
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -65,7 +67,7 @@ export default function Sidebar({
   return (
     <aside
       onClick={onActivate}
-      className="h-full flex flex-col shrink-0"
+      className={`h-full flex flex-col shrink-0${className ? ` ${className}` : ""}`}
       style={{
         width: 260,
         background: "var(--color-bg-secondary)",
@@ -74,9 +76,19 @@ export default function Sidebar({
     >
       {/* Toolbar */}
       <div className="toolbar" style={{ justifyContent: "space-between" }}>
-        <span className="text-headline" style={{ color: "var(--color-label)" }}>
-          RSS Reader
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            className="mobile-only flex items-center justify-center rounded-lg"
+            onClick={(e) => { e.stopPropagation(); onClose?.(); }}
+            style={{ width: 32, height: 32, color: "var(--color-accent)" }}
+            title="Zamknij"
+          >
+            <X size={16} />
+          </button>
+          <span className="text-headline" style={{ color: "var(--color-label)" }}>
+            RSS Reader
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}

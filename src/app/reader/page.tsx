@@ -69,6 +69,12 @@ function ReaderContent() {
 
   useEffect(() => { setIframeMode(false); }, [articleId]);
 
+  // Na mobile: auto-przełącz kolumnę gdy zmienia się articleId
+  useEffect(() => {
+    if (window.innerWidth >= 768) return;
+    setActiveColumn(articleId ? "article" : "list");
+  }, [articleId]);
+
   const handleRefreshComplete = useCallback(() => {
     setLocallyReadIds(new Set());
     if (!filterRef.current) {
@@ -266,6 +272,15 @@ function ReaderContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  const handleMobileBack = useCallback(() => {
+    const params = new URLSearchParams();
+    if (feedIdRef.current) params.set("feedId", feedIdRef.current);
+    if (filterRef.current) params.set("filter", filterRef.current);
+    const query = params.toString();
+    router.push(`/reader${query ? `?${query}` : ""}`);
+    setActiveColumn("list");
+  }, [router]);
+
   if (loading || !user) {
     return (
       <div
@@ -280,16 +295,19 @@ function ReaderContent() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--color-bg-primary)" }}>
+    <div className="mobile-col-container flex h-screen overflow-hidden" style={{ background: "var(--color-bg-primary)" }}>
       <Sidebar
+        className={`col-sidebar${activeColumn === "sidebar" ? " mobile-active" : ""}`}
         userId={user.uid}
         feeds={feeds}
         folders={folders}
         onActivate={() => setActiveColumn("sidebar")}
         highlightedKey={sidebarHighlightKey}
         onRefreshComplete={handleRefreshComplete}
+        onClose={() => setActiveColumn("list")}
       />
       <ArticleList
+        className={`col-list${activeColumn === "list" ? " mobile-active" : ""}`}
         userId={user.uid}
         feedId={feedId}
         filter={filter}
@@ -298,14 +316,17 @@ function ReaderContent() {
         filteredArticles={filteredArticles}
         loading={articlesLoading}
         setCardRef={setCardRef}
+        onOpenSidebar={() => setActiveColumn("sidebar")}
       />
       <ArticleView
+        className={`col-article${activeColumn === "article" ? " mobile-active" : ""}`}
         userId={user.uid}
         articleId={articleId}
         onActivate={() => setActiveColumn("article")}
         viewRef={articleViewRef}
         iframeMode={iframeMode}
         onIframeClose={() => setIframeMode(false)}
+        onBack={handleMobileBack}
       />
     </div>
   );
