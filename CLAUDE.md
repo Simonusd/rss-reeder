@@ -214,6 +214,21 @@ Mobile (< 768px): drilldown navigation — only one column visible at a time.
 - `activeColumn` state in `ReaderContent` drives which column gets `.mobile-active`; auto-switches to `"article"` when `articleId` appears in URL, back to `"list"` when it disappears
 - Parent wrapper has `mobile-col-container` class (adds `position: relative` on mobile)
 
+**CSS critical:** Inactive columns must use `display: none !important` in the media query — without `!important`, inline `style={{ display: "flex" }}` on `ArticleView` overrides it and makes all columns visible simultaneously. `height: 100dvh` (not `100vh`) is required in `.mobile-col-container` on iOS Safari — `100vh` includes browser chrome and causes content to be clipped.
+
+**Mobile swipe navigation:**
+- Col 1 (Sidebar): swipe left → col 2
+- Col 2 (ArticleList): swipe left → col 3; swipe right → col 1
+- Col 3 (ArticleView): swipe left → next article; swipe right → prev article
+
+Swipe detection pattern (all three components):
+```typescript
+const touchStart = useRef({ x: 0, y: 0 });
+// handleTouchEnd: deltaX = start.x - end.x; guard: abs(deltaX) < 50 || abs(deltaY) > abs(deltaX)
+// deltaX > 0 = swipe left; deltaX < 0 = swipe right
+```
+Always track both X and Y — the `Math.abs(deltaY) > Math.abs(deltaX)` guard prevents vertical scrolling from triggering swipe.
+
 All view state is URL-driven: `?feedId=`, `?filter=unread|bookmarks|read`, `?articleId=`.
 Child components receive these as props — **do not call `useSearchParams()` in child components**, only in the top-level page component (`ReaderContent` in `reader/page.tsx`).
 
@@ -274,10 +289,18 @@ Empty states: each filter has a dedicated empty state with icon + title + descri
 - `activeColumn`, `sidebarCursorIndex` — keyboard navigation state
 - `feedIdRef`, `filterRef` — refs updated synchronously each render, used by `handleRefreshComplete` callback to always read the latest URL params
 - `locallyReadIds` — Set of article IDs marked as read in the current session; keeps them visible in `?filter=unread` until refresh. Reset when filter changes or refresh completes.
+- `sidebarKeyNavRef` — `useRef(false)`: set to `true` before `router.push` in sidebar keyboard nav block; consumed and cleared in `useEffect([feedId, filter])` to prevent auto-closing the sidebar on mobile when the URL change came from keyboard (not a click)
+- `listKeyNavRef` — `useRef(false)`: same pattern for col 2; consumed by `useEffect([articleId])` to prevent auto-switching to col 3 on mobile when keyboard navigated within the list
+- `cardRefs` — `useRef<Map<string, HTMLElement>>`: stores DOM refs to article cards; used to scroll the selected card into view during keyboard and swipe navigation
+
+**`navigateToArticle(direction)`** — `useCallback` defined in `ReaderContent`; finds current article index in `filteredArticles`, computes next/prev index, pushes URL, and calls `cardRefs.current.get(id)?.scrollIntoView(...)`. Passed as `onNext`/`onPrev` to `ArticleView` (swipe in col 3) and called directly from `handleKeyDown` when in col 3.
 
 **Marking as read — 3-second timer:** When `articleId` changes, a `setTimeout(3000)` fires and calls `markAsRead` if the article is still unread. Uses `articlesRef` (ref updated on every articles change) to read the latest article state at fire time. This replaces the old instant-on-click approach. The `locallyReadIds` set ensures the article stays visible in the unread filter even after `isRead` flips to `true` in Firestore.
 
-Props flow down to `Sidebar`, `ArticleList`, `ArticleView`.
+Props flow down to `Sidebar`, `ArticleList`, `ArticleView`:
+- `Sidebar` receives `onSwipeLeft` (→ col 2)
+- `ArticleList` receives `onSwipeLeft` (→ col 3), `onSwipeRight` (→ col 1), `setCardRef`
+- `ArticleView` receives `onNext`, `onPrev` (article navigation), `onBack` (→ col 2)
 
 **ReaderMode content state** — `src/components/articles/ReaderMode.tsx` keeps a local `content` state. **Never initialize it as `useState(article.content)` and rely on prop changes to update it** — `useState` only runs once on mount. Instead, always reset `content` via `useEffect` keyed on `article.id`, then conditionally fetch from the API if Firestore has no content. See current implementation for the correct pattern.
 
@@ -297,14 +320,16 @@ Implemented in `ReaderContent` via a `window` `keydown` listener (`handleKeyDown
 |-----|--------|--------|
 | `←` | any | Move focus to previous column |
 | `→` | any | Move focus to next column |
-| `↑` / `↓` | sidebar | Navigate sidebar items (All / Unread / Bookmarks / Folder / Feed), live URL update |
-| `↑` / `↓` | article list | Navigate between articles, auto-open in column 3 |
-| `↑` / `↓` | article view | Scroll content by 120px |
+| `↑` / `↓` | sidebar (col 1) | Navigate sidebar items (All / Unread / Bookmarks / Folder / Feed), live URL update |
+| `↑` / `↓` | article list (col 2) | Navigate between articles; stays in col 2 (does NOT auto-switch to col 3 on mobile) |
+| `↑` / `↓` | article view (col 3) | Navigate to previous/next article (calls `navigateToArticle`) |
 
 - Ignored when focus is in `input` or `textarea`
 - Active column has **no visible border** — `activeColumn` state exists only for keyboard logic, never rendered as a ring/outline
 - Highlighted sidebar item shown with `rgba(0, 122, 255, 0.08)` background
 - `highlightedKey` string format: `"all"`, `"filter:unread"`, `"filter:bookmarks"`, `"folder:{id}"`, `"feed:{id}"`
+
+**Keyboard nav + mobile useEffect interaction:** Keyboard navigation in col 1 and col 2 updates the URL (`router.push`). Two `useEffect`s watch URL changes and auto-switch columns on mobile. To prevent these effects from firing during keyboard nav (which would close the sidebar or jump to col 3), use the `sidebarKeyNavRef` / `listKeyNavRef` refs — set before `router.push`, consumed and cleared inside the `useEffect`. Never remove these guards.
 
 ### AI Integration
 
