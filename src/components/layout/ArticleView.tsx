@@ -36,13 +36,15 @@ export default function ArticleView({
 
   useEffect(() => {
     if (!articleId) { setArticle(null); return; }
+    let mounted = true;
     getDoc(doc(db(), "users", userId, "articles", articleId)).then((snap) => {
-      if (snap.exists()) setArticle({ id: snap.id, ...snap.data() } as Article);
+      if (mounted && snap.exists()) setArticle({ id: snap.id, ...snap.data() } as Article);
     });
     setFetchedContent(null);
     setAiResult("");
     setAiActive(null);
     setFetchingContent(false);
+    return () => { mounted = false; };
   }, [articleId, userId]);
 
   async function share(url: string, title: string) {

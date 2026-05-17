@@ -1,5 +1,6 @@
 import Parser from "rss-parser";
 import type { Article } from "@/types";
+import { isSafeUrl, safeFetch } from "@/lib/validate-url";
 
 const parser = new Parser({ timeout: 10000 });
 
@@ -12,7 +13,7 @@ export interface FeedMeta {
 const RSS_CONTENT_TYPES = ["application/rss+xml", "application/atom+xml", "application/xml", "text/xml"];
 
 async function discoverFeedUrl(url: string): Promise<string> {
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; RSSReader/1.0)" },
   });
 
@@ -35,7 +36,9 @@ async function discoverFeedUrl(url: string): Promise<string> {
       if (hrefMatch) {
         const feedUrl = hrefMatch[1];
         // Obsługa względnych URL-i
-        return feedUrl.startsWith("http") ? feedUrl : new URL(feedUrl, new URL(url).origin).href;
+        const resolved = feedUrl.startsWith("http") ? feedUrl : new URL(feedUrl, new URL(url).origin).href;
+        if (!isSafeUrl(resolved)) throw new Error("Niedozwolony URL feedu");
+        return resolved;
       }
     }
   }

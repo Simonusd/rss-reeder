@@ -130,6 +130,7 @@ Pobierz treść: BookOpen
 | `readability.ts` | Wraps `@mozilla/readability` + `jsdom`; called from `/api/fetch-article`. |
 | `ai.ts` | Routes AI requests to Claude / OpenAI / Gemini based on `provider` field; called from `/api/ai`. |
 | `auth.ts` | Firebase Auth helpers (`loginUser`, `registerUser`, `logoutUser`). |
+| `validate-url.ts` | SSRF guard — `isSafeUrl(url)` returns `false` for non-http(s) schemes, `localhost`, RFC-1918 IPv4, link-local, loopback, and IPv6 private/mapped ranges (`::ffff:`, `fc:`, `fd:`, `fe80:`, `::1`). Called by all three fetch API routes before any outbound request. |
 
 ### Hooks (`src/hooks/`)
 
@@ -147,6 +148,28 @@ Pobierz treść: BookOpen
 - **All AI calls go through `/api/ai/route.ts`** — never call AI providers directly from frontend; user API keys must never appear in server logs
 - **`useSearchParams()` always requires `<Suspense>`** — Next.js 15 App Router rule. Pattern: export a wrapper component that renders `<Suspense><InnerContent /></Suspense>`, and put `useSearchParams()` inside `InnerContent`. See `src/app/reader/page.tsx` for the established pattern.
 - **`'use client'` only when necessary** — hooks, event handlers, browser APIs. Prefer server components.
+
+### Security
+
+#### SSRF Protection (`src/lib/validate-url.ts`)
+
+All three fetch API routes (`/api/fetch-feed`, `/api/fetch-article`, `/api/proxy`) call `isSafeUrl(url)` before any outbound request. **Always call it when adding a new API route that fetches a user-supplied URL.**
+
+Blocked ranges: non-http(s) schemes, `localhost`, `127.x`, `10.x`, `172.16-31.x`, `192.168.x`, `169.254.x`, IPv6 loopback/private (`::1`, `::ffff:*`, `fc*`, `fd*`, `fe80*`).
+
+**Redirect safety — `safeFetch()`:** Never use raw `fetch()` in server-side code that fetches user-supplied URLs. Use `safeFetch(url, options)` from `src/lib/validate-url.ts` instead — it follows redirects manually (up to 5 hops), re-validating each `Location` header through `isSafeUrl()` before proceeding. Raw `fetch()` defaults to `redirect: "follow"` which bypasses the SSRF guard on 302 responses.
+
+#### `/api/ai` Input Validation
+
+`action` and `provider` are validated against strict allowlists; `content` is capped at 50 000 characters. The `model` field is **not yet validated** — do not interpolate it into URLs without first adding a format check (e.g. `/^[\w.-]{1,100}$/`), because `callGemini` in `src/lib/ai.ts` puts `model` directly in the Gemini API URL path.
+
+#### Gemini API Key
+
+Moved from URL query string (`?key=`) to the `x-goog-api-key` request header in `src/lib/ai.ts`. Do not revert to the query-string form — it would appear in server logs and CDN caches.
+
+#### Error Responses
+
+API routes return generic error messages (`"Nie udało się pobrać artykułu"`, etc.) with no `err.message` forwarding. Keep it this way — internal error details must not leak to the client.
 
 ### Data Flow
 
@@ -343,3 +366,4 @@ service cloud.firestore {
 - ⬜ Keyword alerts
 - ⬜ Reading stats/streak
 - ⬜ PDF export
+- ⬜ Walidacja pola `model` w `/api/ai` (regex `/^[\w.-]{1,100}$/`) przed interpolacją w URL Gemini

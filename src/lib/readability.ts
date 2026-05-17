@@ -1,5 +1,6 @@
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
+import { safeFetch } from "@/lib/validate-url";
 
 export interface ReadableArticle {
   title: string;
@@ -14,7 +15,7 @@ export async function extractArticle(url: string): Promise<ReadableArticle> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
 
-  const response = await fetch(url, {
+  const response = await safeFetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; RSSReader/1.0)" },
     signal: controller.signal,
   }).finally(() => clearTimeout(timeout));

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAI } from "@/lib/ai";
-import type { AIRequest } from "@/types";
+import type { AIRequest, AIAction, AIProvider } from "@/types";
+
+const VALID_ACTIONS: AIAction[] = ["summarize", "translate", "autotag", "sentiment", "chat"];
+const VALID_PROVIDERS: AIProvider[] = ["claude", "openai", "gemini"];
+const MAX_CONTENT_LENGTH = 50_000;
 
 export async function POST(req: NextRequest) {
   let body: AIRequest;
@@ -17,11 +21,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Brakujące pola: action, content, provider, apiKey, model" }, { status: 400 });
   }
 
+  if (!VALID_ACTIONS.includes(action)) {
+    return NextResponse.json({ error: "Nieznana akcja AI" }, { status: 400 });
+  }
+
+  if (!VALID_PROVIDERS.includes(provider)) {
+    return NextResponse.json({ error: "Nieznany dostawca AI" }, { status: 400 });
+  }
+
+  if (typeof content !== "string" || content.length > MAX_CONTENT_LENGTH) {
+    return NextResponse.json({ error: "Treść jest zbyt długa" }, { status: 400 });
+  }
+
   try {
     const result = await runAI(body);
     return NextResponse.json({ result });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Nieznany błąd";
-    return NextResponse.json({ error: `Błąd AI: ${message}` }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Błąd podczas przetwarzania AI" }, { status: 500 });
   }
 }
