@@ -14,10 +14,17 @@ export function isSafeUrl(rawUrl: string): boolean {
 
   if (hostname === "localhost") return false;
 
-  // IPv6 loopback and private ranges
+  // IPv6 loopback, private ranges, and IPv4-mapped addresses (::ffff:x.x.x.x)
+  // The WHATWG URL parser normalises all forms (e.g. [0:0:0:0:0:ffff:7f00:1],
+  // [::ffff:127.0.0.1]) to the [::ffff:…] compressed representation, so a
+  // single startsWith check covers every variant.  Without this, an attacker
+  // can bypass the IPv4 block list by encoding 127.0.0.1 as [::ffff:7f00:1] —
+  // Node.js net/undici routes it to 127.0.0.1 and returns ECONNREFUSED, not
+  // ENETUNREACH, proving the connection reaches loopback.
   if (
     hostname === "[::1]" ||
     hostname === "::1" ||
+    hostname.startsWith("[::ffff:") ||
     hostname.startsWith("[fc") ||
     hostname.startsWith("[fd") ||
     hostname.startsWith("[fe80")
