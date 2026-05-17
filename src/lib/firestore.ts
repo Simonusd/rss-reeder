@@ -12,6 +12,7 @@ import {
   orderBy,
   where,
   serverTimestamp,
+  runTransaction,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -115,9 +116,11 @@ export async function markAsRead(userId: string, articleId: string, isRead: bool
   const db_ = db();
   await updateDoc(doc(db_, "users", userId, "articles", articleId), { isRead });
   const feedRef = doc(db_, "users", userId, "feeds", feedId);
-  const feedSnap = await getDoc(feedRef);
-  const curr = Number(feedSnap.data()?.unreadCount ?? 0);
-  await updateDoc(feedRef, { unreadCount: Math.max(0, curr + (isRead ? -1 : 1)) });
+  await runTransaction(db_, async (t) => {
+    const feedSnap = await t.get(feedRef);
+    const curr = Number(feedSnap.data()?.unreadCount ?? 0);
+    t.update(feedRef, { unreadCount: Math.max(0, curr + (isRead ? -1 : 1)) });
+  });
 }
 
 export async function saveArticlesForRefresh(
@@ -148,13 +151,30 @@ export async function saveArticlesForRefresh(
     })
   );
 
+  const existingUnread = existingSnap.docs.filter((d) => !d.data().isRead).length;
   const feedRef = doc(db(), "users", userId, "feeds", feedId);
-  const feedSnap = await getDoc(feedRef);
-  const curr = Number(feedSnap.data()?.unreadCount ?? 0);
   await updateDoc(feedRef, {
-    unreadCount: curr + newCount,
+    unreadCount: existingUnread + newCount,
     lastFetched: serverTimestamp(),
   });
+}
+
+export async function recalculateUnreadCounts(userId: string, feedIds: string[]): Promise<void> {
+  const allSnap = await getDocs(collection(db(), "users", userId, "articles"));
+  const countsByFeed: Record<string, number> = {};
+  allSnap.docs.forEach((d) => {
+    const data = d.data();
+    if (!data.isRead && data.feedId) {
+      countsByFeed[data.feedId] = (countsByFeed[data.feedId] ?? 0) + 1;
+    }
+  });
+  await Promise.all(
+    feedIds.map((feedId) =>
+      updateDoc(doc(db(), "users", userId, "feeds", feedId), {
+        unreadCount: countsByFeed[feedId] ?? 0,
+      })
+    )
+  );
 }
 
 export async function toggleBookmark(userId: string, articleId: string, isBookmarked: boolean): Promise<void> {

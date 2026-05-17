@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useArticles } from "@/hooks/useArticles";
 import { useFeeds } from "@/hooks/useFeeds";
-import { markAsRead } from "@/lib/firestore";
+import { markAsRead, recalculateUnreadCounts } from "@/lib/firestore";
 import Sidebar from "@/components/layout/Sidebar";
 import ArticleList from "@/components/layout/ArticleList";
 import ArticleView from "@/components/layout/ArticleView";
@@ -54,6 +54,7 @@ function ReaderContent() {
   const listKeyNavRef = useRef(false);
   const feedIdRef = useRef<string | null>(null);
   const filterRef = useRef<string | null>(null);
+  const recalcDone = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -98,6 +99,13 @@ function ReaderContent() {
   const { articles, loading: articlesLoading } = useArticles(user?.uid ?? null, feedId);
   const { feeds, folders } = useFeeds(user?.uid ?? null);
 
+  // Jednorazowa korekta unreadCount przy starcie sesji
+  useEffect(() => {
+    if (!user || feeds.length === 0 || recalcDone.current) return;
+    recalcDone.current = true;
+    recalculateUnreadCounts(user.uid, feeds.map((f) => f.id));
+  }, [user, feeds]);
+
   const totalUnread = useMemo(
     () => feeds.reduce((s, f) => s + (f.unreadCount ?? 0), 0),
     [feeds]
@@ -128,7 +136,7 @@ function ReaderContent() {
       if (!article || article.isRead) return;
       markAsRead(user.uid, article.id, true, article.feedId);
       setLocallyReadIds(prev => new Set([...prev, article.id]));
-    }, 1000);
+    }, 3000);
     return () => clearTimeout(timer);
   }, [articleId, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
