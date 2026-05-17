@@ -86,6 +86,8 @@ Defined in `globals.css`: `.text-large-title`, `.text-title1`, `.text-title2`, `
 - `.modal` / `.modal-overlay` / `.modal-enter` — modal with spring animation
 - `.skeleton` — shimmer loading placeholder
 - `.reader-content` / `.reader-title` / `.reader-meta` — Reader Mode article layout
+- `.mobile-only` — visible only on mobile (< 768px); `.desktop-only` — visible only on desktop (≥ 768px)
+- `.col-sidebar` / `.col-list` / `.col-article` + `.mobile-active` — mobile column switching (see Layout section)
 
 ### Icons
 
@@ -129,7 +131,7 @@ Pobierz treść: BookOpen
 | `rss.ts` | Wraps `rss-parser`; called from `/api/fetch-feed`. |
 | `readability.ts` | Wraps `@mozilla/readability` + `jsdom`; called from `/api/fetch-article`. |
 | `ai.ts` | Routes AI requests to Claude / OpenAI / Gemini based on `provider` field; called from `/api/ai`. |
-| `auth.ts` | Firebase Auth helpers (`loginUser`, `registerUser`, `logoutUser`). |
+| `auth.ts` | Firebase Auth helpers: `login`, `register`, `logout`, `onAuthChange`, `resetPassword` (wysyła email resetujący przez `sendPasswordResetEmail`). |
 | `validate-url.ts` | SSRF guard — `isSafeUrl(url)` returns `false` for non-http(s) schemes, `localhost`, RFC-1918 IPv4, link-local, loopback, and IPv6 private/mapped ranges (`::ffff:`, `fc:`, `fd:`, `fe80:`, `::1`). Called by all three fetch API routes before any outbound request. |
 
 ### Hooks (`src/hooks/`)
@@ -202,8 +204,15 @@ Article document ID = `btoa(article.url)` — set in `saveArticles()` and `saveA
 
 ### Layout
 
-Desktop: 3-column (sidebar 260px | article list 380px | article content flex:1)
-Mobile: single-column with bottom navigation
+Desktop (≥ 768px): 3-column (sidebar 260px | article list 380px | article content flex:1)
+
+Mobile (< 768px): drilldown navigation — only one column visible at a time.
+- Default: article list (column 2)
+- Tap article → article view (column 3) with `← Artykuły` back button
+- Tap `Rss` icon in list toolbar → sidebar (column 1) with `X` close button
+- Implemented via CSS classes: `.col-sidebar`, `.col-list`, `.col-article` on the column root elements; `.mobile-active` added to the currently visible column; `position: absolute; inset: 0` on mobile via `@media (max-width: 767px)` in `globals.css`
+- `activeColumn` state in `ReaderContent` drives which column gets `.mobile-active`; auto-switches to `"article"` when `articleId` appears in URL, back to `"list"` when it disappears
+- Parent wrapper has `mobile-col-container` class (adds `position: relative` on mobile)
 
 All view state is URL-driven: `?feedId=`, `?filter=unread|bookmarks|read`, `?articleId=`.
 Child components receive these as props — **do not call `useSearchParams()` in child components**, only in the top-level page component (`ReaderContent` in `reader/page.tsx`).
@@ -278,6 +287,7 @@ Props flow down to `Sidebar`, `ArticleList`, `ArticleView`.
 - A `session=1` cookie is set/cleared manually (used by middleware for SSR route protection)
 - When Firebase reports no user, the cookie is cleared before redirecting to `/login` — prevents redirect loops
 - Middleware: `src/middleware.ts` — protects `/reader`, `/settings`, `/article`
+- **Password recovery** — `LoginForm` (`src/components/auth/LoginForm.tsx`) has a "Zapomniałeś hasła?" button that opens a modal. The modal calls `resetPassword(email)` from `src/lib/auth.ts` which uses Firebase `sendPasswordResetEmail()`. Pre-fills the email field from the login form.
 
 ### Keyboard Navigation
 
@@ -333,6 +343,24 @@ fetchFullContent() → /api/fetch-article → onContentFetched(content) → Read
 - `SettingsSection` — white card with iOS-style grouped layout
 - `SettingsRow` — label + right-side content row with separator
 - `Toggle` — iOS-style toggle switch (animated, green when on)
+
+## Deployment (Netlify)
+
+`netlify.toml` w katalogu głównym konfiguruje build i plugin Next.js:
+```toml
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+```
+
+Zmienne środowiskowe (`NEXT_PUBLIC_FIREBASE_*`) muszą być ustawione w Netlify Dashboard → Site Configuration → Environment variables. Nie są commitowane (`.env.local` i `.env` są w `.gitignore`). Po zmianie zmiennych wymagany jest nowy deploy (zmienne `NEXT_PUBLIC_*` są wbudowywane w bundle podczas budowania).
+
+Dwa branche deployowane osobno:
+- `main` → `rrs-reader.netlify.app` (produkcja)
+- `new` → `new--rrs-reader.netlify.app` (development)
 
 ## Environment Variables
 
