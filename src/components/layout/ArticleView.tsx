@@ -112,7 +112,7 @@ export default function ArticleView({
     const deltaY = touchStart.current.y - e.changedTouches[0].clientY;
     if (Math.abs(deltaX) < 50 || Math.abs(deltaY) > Math.abs(deltaX)) return;
     if (deltaX > 0) onNext?.();
-    else onBack?.();
+    else onPrev?.();
   };
 
   if (!article) {
@@ -178,13 +178,13 @@ export default function ArticleView({
       }}
     >
       {iframeMode ? (
-        <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+        <div style={{ display: "flex", flexDirection: "column", width: "100%", flex: 1, position: "relative" }}>
           <div
             className="toolbar"
-            style={{ gap: 8, justifyContent: "space-between", flexShrink: 0 }}
+            style={{ gap: 8, justifyContent: "space-between", flexShrink: 0, position: "relative", zIndex: 10 }}
           >
             <button
-              onClick={onIframeClose}
+              onClick={(e) => { e.stopPropagation(); onIframeClose(); }}
               className="flex items-center gap-1.5"
               style={{ color: "var(--color-accent)", fontSize: 14, fontWeight: 500 }}
             >
