@@ -54,6 +54,7 @@ function ReaderContent() {
   const listKeyNavRef = useRef(false);
   const feedIdRef = useRef<string | null>(null);
   const filterRef = useRef<string | null>(null);
+  const sidebarItemsRef = useRef<SidebarItem[]>([]);
   const recalcDone = useRef(false);
 
   useEffect(() => {
@@ -81,7 +82,13 @@ function ReaderContent() {
   }, [articleId]);
 
   useEffect(() => {
-    if (window.innerWidth >= 768) return;
+    if (window.innerWidth >= 768) {
+      if (!sidebarKeyNavRef.current) {
+        setSidebarCursorIndex(getInitialSidebarIndex(sidebarItemsRef.current, feedId, filter));
+      }
+      sidebarKeyNavRef.current = false;
+      return;
+    }
     if (sidebarKeyNavRef.current) { sidebarKeyNavRef.current = false; return; }
     setActiveColumn("list");
   }, [feedId, filter]);
@@ -167,6 +174,7 @@ function ReaderContent() {
     ],
     [feeds, folders]
   );
+  sidebarItemsRef.current = sidebarItems;
 
   const sidebarHighlightKey = useMemo<string | null>(() => {
     if (activeColumn !== "sidebar") return null;
@@ -320,6 +328,11 @@ function ReaderContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  const openSidebar = useCallback(() => {
+    setSidebarCursorIndex(getInitialSidebarIndex(sidebarItemsRef.current, feedIdRef.current, filterRef.current));
+    setActiveColumn("sidebar");
+  }, []);
+
   const handleMobileBack = useCallback(() => {
     const params = new URLSearchParams();
     if (feedIdRef.current) params.set("feedId", feedIdRef.current);
@@ -356,7 +369,7 @@ function ReaderContent() {
         userId={user.uid}
         feeds={feeds}
         folders={folders}
-        onActivate={() => setActiveColumn("sidebar")}
+        onActivate={openSidebar}
         highlightedKey={sidebarHighlightKey}
         onRefreshComplete={handleRefreshComplete}
         onClose={() => setActiveColumn("list")}
@@ -372,9 +385,9 @@ function ReaderContent() {
         filteredArticles={filteredArticles}
         loading={articlesLoading}
         setCardRef={setCardRef}
-        onOpenSidebar={() => setActiveColumn("sidebar")}
+        onOpenSidebar={openSidebar}
         onSwipeLeft={() => setActiveColumn("article")}
-        onSwipeRight={() => setActiveColumn("sidebar")}
+        onSwipeRight={openSidebar}
       />
       <ArticleView
         className={`col-article${activeColumn === "article" ? " mobile-active" : ""}`}
