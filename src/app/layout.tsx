@@ -22,7 +22,7 @@ export const viewport: Viewport = {
 const themeScript = `
   try {
     var t = localStorage.getItem('rss-theme');
-    if (t === 'dark' || t === 'sepia' || t === 'light') {
+    if (['light','dark','sepia','neon','nord','paper','terminal'].includes(t)) {
       document.documentElement.classList.add(t);
     }
   } catch(e) {}

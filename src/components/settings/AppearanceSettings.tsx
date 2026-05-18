@@ -8,10 +8,16 @@ interface Props {
   userId: string;
 }
 
-const THEMES: { value: Theme; label: string }[] = [
-  { value: "light", label: "Jasny" },
-  { value: "dark",  label: "Ciemny" },
-  { value: "sepia", label: "Sepia" },
+const ALL_THEME_CLASSES = ["light", "dark", "sepia", "neon", "nord", "paper", "terminal"] as const;
+
+const THEMES: { value: Theme; label: string; colors: { bg: string; accent: string; swatchBorder?: string } }[] = [
+  { value: "light",    label: "Jasny",    colors: { bg: "#FAFAF8", accent: "#007AFF", swatchBorder: "rgba(0,0,0,0.10)" } },
+  { value: "dark",     label: "Ciemny",   colors: { bg: "#000000", accent: "#007AFF" } },
+  { value: "sepia",    label: "Sepia",    colors: { bg: "#F5EDD6", accent: "#8B5E3C", swatchBorder: "rgba(0,0,0,0.10)" } },
+  { value: "neon",     label: "Neon",     colors: { bg: "#0A0A0F", accent: "#FF2D78" } },
+  { value: "nord",     label: "Nord",     colors: { bg: "#2E3440", accent: "#88C0D0" } },
+  { value: "paper",    label: "Paper",    colors: { bg: "#FAF8F4", accent: "#C17D2C", swatchBorder: "rgba(0,0,0,0.10)" } },
+  { value: "terminal", label: "Terminal", colors: { bg: "#000000", accent: "#00FF41" } },
 ];
 
 export default function AppearanceSettings({ userId }: Props) {
@@ -19,39 +25,95 @@ export default function AppearanceSettings({ userId }: Props) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove("dark", "sepia", "light");
-    if (settings.theme === "dark") root.classList.add("dark");
-    else if (settings.theme === "sepia") root.classList.add("sepia");
-    else if (settings.theme === "light") root.classList.add("light");
+    root.classList.remove(...ALL_THEME_CLASSES);
+    root.classList.add(settings.theme);
     document.documentElement.style.setProperty("--font-size", `${settings.fontSize}px`);
   }, [settings.theme, settings.fontSize]);
 
   return (
     <SettingsSection title="Wygląd">
-      {/* Motyw */}
-      <SettingsRow label="Motyw" noBorder>
-        <div style={{ display: "flex", gap: 8 }}>
-          {THEMES.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => updateSettings({ theme: value })}
-              style={{
-                padding: "6px 14px",
-                borderRadius: "var(--radius-full)",
-                fontSize: 14,
-                fontWeight: settings.theme === value ? 600 : 400,
-                color: settings.theme === value ? "white" : "var(--color-label)",
-                background: settings.theme === value ? "var(--color-accent)" : "var(--color-bg-secondary)",
-                border: "none",
-                cursor: "pointer",
-                transition: "background 0.2s, color 0.2s",
-              }}
-            >
-              {label}
-            </button>
-          ))}
+      {/* Motyw — siatka kart z podglądem kolorów */}
+      <div style={{ padding: "16px", borderBottom: "1px solid var(--color-separator)" }}>
+        <p className="text-subheadline" style={{ color: "var(--color-label)", fontWeight: 500, marginBottom: 12 }}>
+          Motyw
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+          {THEMES.map(({ value, label, colors }) => {
+            const active = settings.theme === value;
+            return (
+              <button
+                key={value}
+                onClick={() => updateSettings({ theme: value })}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px",
+                  borderRadius: "var(--radius-md)",
+                  border: `2px solid ${active ? "var(--color-accent)" : "var(--color-separator)"}`,
+                  background: "transparent",
+                  cursor: "pointer",
+                  position: "relative",
+                  transition: "border-color 0.2s",
+                }}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    height: 36,
+                    borderRadius: "var(--radius-sm)",
+                    background: colors.bg,
+                    border: colors.swatchBorder ? `1px solid ${colors.swatchBorder}` : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: "var(--radius-full)",
+                      background: colors.accent,
+                    }}
+                  />
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: active ? 600 : 400,
+                    color: active ? "var(--color-accent)" : "var(--color-label-secondary)",
+                    lineHeight: 1,
+                  }}
+                >
+                  {label}
+                </span>
+                {active && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      width: 16,
+                      height: 16,
+                      borderRadius: "var(--radius-full)",
+                      background: "var(--color-accent)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                      <path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      </SettingsRow>
+      </div>
 
       <SettingsRow label="Rozmiar czcionki">
         <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 200 }}>

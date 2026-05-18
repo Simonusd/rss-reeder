@@ -145,6 +145,134 @@
   --shadow-lg: 0 20px 60px rgba(0,0,0,0.10), 0 8px 20px rgba(0,0,0,0.05);
 }
 
+/* ── Neon theme ──────────────────────────────────────────────── */
+.neon {
+  --color-bg-primary:   #0A0A0F;
+  --color-bg-secondary: #14141C;
+  --color-bg-tertiary:  #1E1E2E;
+  --color-bg-grouped:   #14141C;
+
+  --color-separator:        rgba(255, 45, 120, 0.15);
+  --color-separator-opaque: #2A1A24;
+
+  --color-label:            #F0EEFF;
+  --color-label-secondary:  rgba(240, 238, 255, 0.65);
+  --color-label-tertiary:   rgba(240, 238, 255, 0.35);
+  --color-label-quaternary: rgba(240, 238, 255, 0.18);
+
+  --color-accent:        #FF2D78;
+  --color-accent-green:  #39FF14;
+  --color-accent-red:    #FF453A;
+  --color-accent-orange: #FF9F0A;
+  --color-accent-purple: #BF5AF2;
+  --color-accent-teal:   #5AC8FA;
+
+  --color-material-thick:      rgba(10, 10, 15, 0.92);
+  --color-material-regular:    rgba(10, 10, 15, 0.80);
+  --color-material-thin:       rgba(10, 10, 15, 0.60);
+  --color-material-ultra-thin: rgba(10, 10, 15, 0.40);
+
+  --shadow-sm: 0 1px 3px rgba(255,45,120,0.12), 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-md: 0 4px 16px rgba(255,45,120,0.16), 0 2px 4px rgba(0,0,0,0.25);
+  --shadow-lg: 0 20px 60px rgba(255,45,120,0.20), 0 8px 20px rgba(0,0,0,0.40);
+}
+
+/* ── Nord theme ──────────────────────────────────────────────── */
+.nord {
+  --color-bg-primary:   #2E3440;
+  --color-bg-secondary: #3B4252;
+  --color-bg-tertiary:  #434C5E;
+  --color-bg-grouped:   #3B4252;
+
+  --color-separator:        rgba(236, 239, 244, 0.12);
+  --color-separator-opaque: #4C566A;
+
+  --color-label:            #ECEFF4;
+  --color-label-secondary:  rgba(236, 239, 244, 0.65);
+  --color-label-tertiary:   rgba(236, 239, 244, 0.35);
+  --color-label-quaternary: rgba(236, 239, 244, 0.18);
+
+  --color-accent:        #88C0D0;
+  --color-accent-green:  #A3BE8C;
+  --color-accent-red:    #BF616A;
+  --color-accent-orange: #D08770;
+  --color-accent-purple: #B48EAD;
+  --color-accent-teal:   #8FBCBB;
+
+  --color-material-thick:      rgba(46, 52, 64, 0.92);
+  --color-material-regular:    rgba(46, 52, 64, 0.80);
+  --color-material-thin:       rgba(46, 52, 64, 0.60);
+  --color-material-ultra-thin: rgba(46, 52, 64, 0.40);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.18);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.20);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.55), 0 8px 20px rgba(0,0,0,0.30);
+}
+
+/* ── Paper theme ─────────────────────────────────────────────── */
+.paper {
+  --color-bg-primary:   #FAF8F4;
+  --color-bg-secondary: #F0EBE1;
+  --color-bg-tertiary:  #FFFFFF;
+  --color-bg-grouped:   #F0EBE1;
+
+  --color-separator:        rgba(44, 36, 22, 0.10);
+  --color-separator-opaque: #D8D0C4;
+
+  --color-label:            #2C2416;
+  --color-label-secondary:  rgba(44, 36, 22, 0.60);
+  --color-label-tertiary:   rgba(44, 36, 22, 0.35);
+  --color-label-quaternary: rgba(44, 36, 22, 0.18);
+
+  --color-accent:        #C17D2C;
+  --color-accent-green:  #4A7C59;
+  --color-accent-red:    #C0392B;
+  --color-accent-orange: #D4652A;
+  --color-accent-purple: #7C6C9E;
+  --color-accent-teal:   #3D8B8B;
+
+  --color-material-thick:      rgba(250, 248, 244, 0.92);
+  --color-material-regular:    rgba(250, 248, 244, 0.80);
+  --color-material-thin:       rgba(250, 248, 244, 0.60);
+  --color-material-ultra-thin: rgba(250, 248, 244, 0.40);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.03);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.10), 0 8px 20px rgba(0,0,0,0.05);
+}
+
+/* ── Terminal theme ──────────────────────────────────────────── */
+.terminal {
+  --color-bg-primary:   #000000;
+  --color-bg-secondary: #0A0A0A;
+  --color-bg-tertiary:  #111111;
+  --color-bg-grouped:   #0A0A0A;
+
+  --color-separator:        rgba(0, 255, 65, 0.15);
+  --color-separator-opaque: #0D2010;
+
+  --color-label:            #00FF41;
+  --color-label-secondary:  rgba(0, 255, 65, 0.70);
+  --color-label-tertiary:   rgba(0, 255, 65, 0.40);
+  --color-label-quaternary: rgba(0, 255, 65, 0.20);
+
+  --color-accent:        #00FF41;
+  --color-accent-green:  #00FF41;
+  --color-accent-red:    #FF453A;
+  --color-accent-orange: #FFFF00;
+  --color-accent-purple: #FF00FF;
+  --color-accent-teal:   #00FFFF;
+
+  --color-material-thick:      rgba(0, 0, 0, 0.95);
+  --color-material-regular:    rgba(0, 0, 0, 0.85);
+  --color-material-thin:       rgba(0, 0, 0, 0.70);
+  --color-material-ultra-thin: rgba(0, 0, 0, 0.50);
+
+  --shadow-sm: 0 1px 3px rgba(0,255,65,0.10), 0 1px 2px rgba(0,0,0,0.30);
+  --shadow-md: 0 4px 16px rgba(0,255,65,0.12), 0 2px 4px rgba(0,0,0,0.40);
+  --shadow-lg: 0 20px 60px rgba(0,255,65,0.15), 0 8px 20px rgba(0,0,0,0.60);
+}
+
 /* ─── Base styles ─────────────────────────────────────────────── */
 html {
   font-size: var(--font-size);

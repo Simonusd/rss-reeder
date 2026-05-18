@@ -1,4 +1,4 @@
-export type Theme = "light" | "dark" | "sepia";
+export type Theme = "light" | "dark" | "sepia" | "neon" | "nord" | "paper" | "terminal";
 export type AIProvider = "claude" | "openai" | "gemini";
 export type Sentiment = "positive" | "neutral" | "negative";
 export type AIAction = "summarize" | "translate" | "autotag" | "sentiment" | "chat";

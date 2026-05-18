@@ -9,10 +9,8 @@ export function ThemeApplicator() {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove("dark", "sepia", "light");
-    if (settings.theme === "dark") root.classList.add("dark");
-    else if (settings.theme === "sepia") root.classList.add("sepia");
-    else if (settings.theme === "light") root.classList.add("light");
+    root.classList.remove("light", "dark", "sepia", "neon", "nord", "paper", "terminal");
+    root.classList.add(settings.theme);
     root.style.setProperty("--font-size", `${settings.fontSize}px`);
     try { localStorage.setItem("rss-theme", settings.theme); } catch { /* private browsing */ }
   }, [settings.theme, settings.fontSize]);
