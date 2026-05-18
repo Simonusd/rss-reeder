@@ -59,8 +59,8 @@ export default function AppearanceSettings({ userId }: Props) {
           </span>
           <input
             type="range"
-            min={12}
-            max={24}
+            min={15}
+            max={30}
             value={settings.fontSize}
             onChange={(e) => updateSettings({ fontSize: Number(e.target.value) })}
             style={{ flex: 1, accentColor: "var(--color-accent)" }}
