@@ -74,7 +74,15 @@ export async function parseFeed(url: string): Promise<{ meta: FeedMeta; articles
       url: item.link ?? "",
       content: item.content ?? item.contentSnippet ?? "",
       summary: null,
-      publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
+      publishedAt: (() => {
+        // pubDate = <pubDate> (RSS 2.0) or <published> (Atom) — original publication date
+        // isoDate = <updated> (Atom) — last modified, used only as fallback
+        const fromPub = item.pubDate ? new Date(item.pubDate) : null;
+        if (fromPub && !isNaN(fromPub.getTime())) return fromPub;
+        const fromIso = item.isoDate ? new Date(item.isoDate) : null;
+        if (fromIso && !isNaN(fromIso.getTime())) return fromIso;
+        return new Date();
+      })(),
       isRead: false,
       isBookmarked: false,
       tags: [],

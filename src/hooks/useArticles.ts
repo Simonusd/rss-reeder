@@ -19,11 +19,8 @@ export function useArticles(userId: string | null, feedId: string | null = null)
     setLoading(true);
 
     const unsubscribe = subscribeToArticles(userId, feedId, (a) => {
-      const sorted = [...a].sort((x, y) => {
-        const xd = x.publishedAt instanceof Date ? x.publishedAt : new Date(x.publishedAt as string);
-        const yd = y.publishedAt instanceof Date ? y.publishedAt : new Date(y.publishedAt as string);
-        return yd.getTime() - xd.getTime();
-      });
+      const toMs = (v: Article["publishedAt"]) => (v instanceof Date ? v.getTime() : 0);
+      const sorted = [...a].sort((x, y) => toMs(y.publishedAt) - toMs(x.publishedAt));
       setArticles(sorted);
       setLoading(false);
     });

@@ -196,6 +196,18 @@ users/{userId}/
 
 Article document ID = `btoa(article.url)` — set in `saveArticles()` and `saveArticlesForRefresh()` in `src/lib/firestore.ts`.
 
+**Date handling — root cause of past bugs:** `publishedAt` is created as `Date` in `rss.ts`, but the API route (`/api/fetch-feed`) returns articles via `NextResponse.json()`, which JSON-serializes `Date` → ISO string. `AddFeedModal` and `Sidebar` previously saved that string directly to Firestore — Firestore stores strings as strings, not Timestamps. Fix: `normalizeDate(v)` in `firestore.ts` converts any unknown type (string/number/Date) to a proper `Date` before every `setDoc`/`updateDoc`. **Always call `normalizeDate` on `publishedAt` before saving to Firestore.**
+
+`subscribeToArticles` handles all legacy formats: Firestore Timestamp (`.toDate()`), plain object (`.seconds`), legacy string/number (`new Date(ts)`). Falls back to `new Date(NaN)` for truly missing dates — `formatDate` shows "—" for those.
+
+`rss.ts` uses `pubDate` first, `isoDate` only as fallback. **Do not swap this order:** in Atom feeds, `isoDate` comes from `<updated>` (last modified), while `pubDate` comes from `<published>` (original publication date).
+
+**`formatDate` display rules** (in `ArticleCard.tsx`):
+- < 60 min → "X min temu"
+- < 24h → "X godz. temu"
+- yesterday → "wczoraj HH:MM"
+- older → "D MMM HH:MM" (e.g. "18 maj 14:30")
+
 **Article query design** — `subscribeToArticles` in `src/lib/firestore.ts` uses `where("feedId", "==", feedId)` **without** `orderBy` when filtering by feed, to avoid the Firestore composite index requirement (`where` on one field + `orderBy` on a different field always requires a composite index). Sorting by `publishedAt` is done client-side in `useArticles` hook. The "all articles" query (no `where`) still uses Firestore-side `orderBy("publishedAt", "desc")`. **Do not add `orderBy` back to the feedId query** without first creating the composite index in Firebase Console.
 
 **`unreadCount` on feed documents** — maintained by two functions in `src/lib/firestore.ts`:

@@ -15,18 +15,30 @@ interface Props {
   setCardRef: (id: string, node: HTMLElement | null) => void;
 }
 
-function formatDate(date: Date | { seconds: number }): string {
-  const d = date instanceof Date ? date : new Date((date as { seconds: number }).seconds * 1000);
+function toDate(date: unknown): Date {
+  if (date == null) return new Date(NaN);
+  if (date instanceof Date) return date;
+  if (typeof date === "object" && typeof (date as { toDate?: unknown }).toDate === "function")
+    return (date as { toDate: () => Date }).toDate();
+  if (typeof date === "object" && "seconds" in (date as object))
+    return new Date(((date as { seconds: number }).seconds) * 1000);
+  return new Date(date as string);
+}
+
+function formatDate(date: unknown): string {
+  const d = toDate(date);
+  if (isNaN(d.getTime())) return "—";
   const now = new Date();
   const diff = now.getTime() - d.getTime();
   const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
+  const time = d.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
   if (mins < 60) return `${mins} min temu`;
   if (hours < 24) return `${hours} godz. temu`;
-  if (days === 1) return "wczoraj";
-  if (days < 7) return `${days} dni temu`;
-  return d.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return `wczoraj ${time}`;
+  return `${d.toLocaleDateString("pl-PL", { day: "numeric", month: "short" })} ${time}`;
 }
 
 export default function ArticleCard({

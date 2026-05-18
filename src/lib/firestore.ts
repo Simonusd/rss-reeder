@@ -97,18 +97,44 @@ export function subscribeToArticles(
   return onSnapshot(
     q,
     (snap) => {
-      const articles = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article));
+      const articles = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          publishedAt: (() => {
+            const ts = data.publishedAt;
+            if (!ts) return new Date(NaN);
+            if (typeof ts.toDate === "function") return ts.toDate();
+            if (typeof ts.seconds === "number") return new Date(ts.seconds * 1000);
+            if (typeof ts === "string" || typeof ts === "number") {
+              const d = new Date(ts); return isNaN(d.getTime()) ? new Date(NaN) : d;
+            }
+            return new Date(NaN);
+          })(),
+        } as Article;
+      });
       callback(articles);
     },
     (error) => console.error("subscribeToArticles error:", error)
   );
 }
 
+function normalizeDate(v: unknown): Date {
+  if (v instanceof Date && !isNaN(v.getTime())) return v;
+  if (typeof v === "string" || typeof v === "number") {
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  return new Date();
+}
+
 export async function saveArticles(userId: string, articles: Omit<Article, "id">[]): Promise<void> {
   await Promise.all(
-    articles.map((article) =>
-      setDoc(doc(db(), "users", userId, "articles", btoa(article.url)), article, { merge: true })
-    )
+    articles.map((article) => {
+      const normalized = { ...article, publishedAt: normalizeDate(article.publishedAt) };
+      return setDoc(doc(db(), "users", userId, "articles", btoa(article.url)), normalized, { merge: true });
+    })
   );
 }
 
@@ -143,9 +169,9 @@ export async function saveArticlesForRefresh(
       if (existingIds.has(id)) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { isRead, isBookmarked, summary, tags, sentiment, ...content } = article;
-        await updateDoc(ref, { ...content, feedId });
+        await updateDoc(ref, { ...content, feedId, publishedAt: normalizeDate(article.publishedAt) });
       } else {
-        await setDoc(ref, { ...article, feedId, isRead: false, isBookmarked: false });
+        await setDoc(ref, { ...article, feedId, isRead: false, isBookmarked: false, publishedAt: normalizeDate(article.publishedAt) });
         newCount++;
       }
     })
