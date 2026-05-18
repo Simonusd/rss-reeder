@@ -68,7 +68,15 @@ All colors, spacing, radius, shadows and transitions are defined as CSS variable
 
 ### Theme switching
 
-`AppearanceSettings` applies theme by adding one of `.light` / `.dark` / `.sepia` classes to `document.documentElement` via `useEffect`. The CSS variables for each theme are defined in `globals.css`:
+Motyw aplikowany jest dwufazowo:
+
+**Faza 1 — synchroniczna (inline script w `layout.tsx` `<head>`):** Czyta `localStorage.getItem('rss-theme')` i natychmiast dodaje odpowiednią klasę do `<html>` zanim React się hydratuje. Eliminuje "flash of wrong theme" przy starcie. `suppressHydrationWarning` na `<html>` wymagane aby React nie alarmował o różnicy serwer↔klient.
+
+**Faza 2 — asynchroniczna (`src/components/ThemeApplicator.tsx`):** Globalny client component w `layout.tsx` — montuje się na każdej stronie. Używa `useAuth()` + `useSettings()` żeby potwierdzić motyw z Firestore, aplikuje klasę do `<html>`, zapisuje do `localStorage`. Obsługuje przypadek gdy motyw zmieniono na innym urządzeniu.
+
+`AppearanceSettings` (`src/components/settings/AppearanceSettings.tsx`) ZACHOWUJE swój własny `useEffect` — daje instant feedback gdy użytkownik kliknie nowy motyw w UI ustawień (redundancja z `ThemeApplicator` jest celowa).
+
+CSS variables dla każdego motywu w `globals.css`:
 - `.light {}` — ciepły off-white (`#FAFAF8` bg, `#F2EDE8` secondary, `#1A1A18` tekst); blokuje nadpisanie przez OS dark mode dzięki `@media (prefers-color-scheme: dark) { :root:not(.light) {} }`
 - `.dark {}` — czarne tło Apple HIG
 - `.sepia {}` — kremowy papier
