@@ -274,7 +274,7 @@ Empty states: each filter has a dedicated empty state with icon + title + descri
 - Title bold (`font-weight: 600`) when unread, gray (`--color-label-secondary`) when read
 - `BookmarkIcon` / `BookmarkCheck` appears on hover (opacity transition)
 - Relative time with minute precision (e.g. "4 min temu", "2 godz. temu", "wczoraj")
-- **Does NOT call `markAsRead` on click** — only navigates to the article. Marking as read is handled by a 3-second timer in `ReaderContent`.
+- **Does NOT call `markAsRead` on click** — only navigates to the article. Marking as read is handled by a 1-second timer in `ReaderContent`.
 
 ### Iframe mode — oryginalna strona w readerze
 
@@ -311,7 +311,11 @@ Na **desktopie**: gdy `activeColumn === "article"` i jest otwarty artykuł, naci
 
 **`navigateToArticle(direction)`** — `useCallback` defined in `ReaderContent`; finds current article index in `filteredArticles`, computes next/prev index, pushes URL, and calls `cardRefs.current.get(id)?.scrollIntoView(...)`. Passed as `onNext`/`onPrev` to `ArticleView` (swipe in col 3) and called directly from `handleKeyDown` when in col 3.
 
-**Marking as read — 1-second timer:** When `articleId` changes, a `setTimeout(1000)` fires and calls `markAsRead` if the article is still unread. Uses `articlesRef` (ref updated on every articles change) to read the latest article state at fire time. This replaces the old instant-on-click approach. The `locallyReadIds` set ensures the article stays visible in the unread filter even after `isRead` flips to `true` in Firestore.
+**Marking as read — 1-second timer:** When `articleId` changes, a `setTimeout(1000)` fires and calls `markAsRead` if the article is still unread. Uses `articlesRef` (ref updated on every articles change) to read the latest article state at fire time. The `locallyReadIds` set ensures the article stays visible in the unread filter even after `isRead` flips to `true` in Firestore.
+
+**`recalculateUnreadCounts(userId, feedIds)`** — called once per session on first load (guarded by `recalcDone` ref). Scans all article docs and sets exact `unreadCount` on every feed document. Self-heals any count drift that accumulated between sessions (e.g. from bug fixes or direct Firestore edits). Do not call on every render — one shot at startup is enough.
+
+**App Badge API** — `totalUnread` (sum of `feed.unreadCount` across all feeds, via `useMemo`) is forwarded to `navigator.setAppBadge(totalUnread)` / `clearAppBadge()` so the OS icon badge reflects the unread count when the PWA is installed.
 
 Props flow down to `Sidebar`, `ArticleList`, `ArticleView`:
 - `Sidebar` receives `onSwipeLeft` (→ col 2)
