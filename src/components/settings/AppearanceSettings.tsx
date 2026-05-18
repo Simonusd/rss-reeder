@@ -22,6 +22,7 @@ export default function AppearanceSettings({ userId }: Props) {
     root.classList.remove("dark", "sepia", "light");
     if (settings.theme === "dark") root.classList.add("dark");
     else if (settings.theme === "sepia") root.classList.add("sepia");
+    else if (settings.theme === "light") root.classList.add("light");
     document.documentElement.style.setProperty("--font-size", `${settings.fontSize}px`);
   }, [settings.theme, settings.fontSize]);
 

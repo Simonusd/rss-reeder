@@ -68,7 +68,11 @@ All colors, spacing, radius, shadows and transitions are defined as CSS variable
 
 ### Theme switching
 
-`AppearanceSettings` applies theme by adding/removing `.dark` or `.sepia` classes to `document.documentElement` via `useEffect`. The CSS variables for each theme are defined in `globals.css` under `.dark {}` and `.sepia {}` selectors (and `@media (prefers-color-scheme: dark)` for OS-level dark mode).
+`AppearanceSettings` applies theme by adding one of `.light` / `.dark` / `.sepia` classes to `document.documentElement` via `useEffect`. The CSS variables for each theme are defined in `globals.css`:
+- `.light {}` — ciepły off-white (`#FAFAF8` bg, `#F2EDE8` secondary, `#1A1A18` tekst); blokuje nadpisanie przez OS dark mode dzięki `@media (prefers-color-scheme: dark) { :root:not(.light) {} }`
+- `.dark {}` — czarne tło Apple HIG
+- `.sepia {}` — kremowy papier
+- `@media (prefers-color-scheme: dark) { :root:not(.light) {} }` — OS-level dark mode, aktywny tylko gdy NIE ma klasy `.light`
 
 **Do not add `dark:` Tailwind prefixes** — colors are handled entirely through CSS variables. Tailwind's `dark:` class system is wired to `darkMode: "class"` in `tailwind.config.ts` but the variable-based approach covers it already.
 
